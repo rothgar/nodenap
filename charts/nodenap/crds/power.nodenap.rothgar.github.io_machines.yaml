@@ -24,9 +24,17 @@ spec:
     - jsonPath: .status.target
       name: Target
       type: string
+    - description: 'dry run: target nodenap would set'
+      jsonPath: .status.wouldTarget
+      name: Would
+      type: string
     - jsonPath: .status.measuredWatts
       name: Watts
       type: string
+    - description: time since the machine became unneeded
+      jsonPath: .status.unneededSince
+      name: Idle
+      type: date
     - jsonPath: .status.targetReason
       name: Reason
       priority: 1
@@ -1103,6 +1111,13 @@ spec:
               unneededSince:
                 description: When the planner first saw the machine as unneeded.
                 format: date-time
+                type: string
+              wouldTarget:
+                description: 'Dry run only: the target nodenap would set now (empty:
+                  no change).'
+                enum:
+                - "On"
+                - "Off"
                 type: string
             type: object
         type: object

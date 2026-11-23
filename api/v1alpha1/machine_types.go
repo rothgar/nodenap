@@ -100,6 +100,9 @@ type MachineStatus struct {
 	Target Target `json:"target,omitempty"`
 	// +optional
 	TargetReason string `json:"targetReason,omitempty"`
+	// Dry run only: the target nodenap would set now (empty: no change).
+	// +optional
+	WouldTarget Target `json:"wouldTarget,omitempty"`
 	// +optional
 	Message string `json:"message,omitempty"`
 	// +optional
@@ -131,7 +134,9 @@ type MachineStatus struct {
 // +kubebuilder:printcolumn:name="Node",type=string,JSONPath=`.spec.nodeName`
 // +kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.powerState`
 // +kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.status.target`
+// +kubebuilder:printcolumn:name="Would",type=string,JSONPath=`.status.wouldTarget`,description="dry run: target nodenap would set"
 // +kubebuilder:printcolumn:name="Watts",type=string,JSONPath=`.status.measuredWatts`
+// +kubebuilder:printcolumn:name="Idle",type=date,JSONPath=`.status.unneededSince`,description="time since the machine became unneeded"
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.targetReason`,priority=1
 type Machine struct {
 	metav1.TypeMeta   `json:",inline"`

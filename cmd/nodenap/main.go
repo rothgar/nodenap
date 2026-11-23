@@ -5,6 +5,7 @@ package main
 import (
 	"flag"
 	"os"
+	_ "time/tzdata" // energy.timeZone works on any base image
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"

@@ -53,7 +53,9 @@ subnet, use a directed broadcast address (e.g. `192.168.1.255`) in the
 `wakeOnLAN` driver.
 
 Helm installs CRDs only on first install. After upgrading to a version with
-API changes, apply them from `charts/nodenap/crds/`.
+API changes, apply them from `charts/nodenap/crds/`. With a Flux
+HelmRelease, set `install.crds: CreateReplace` and `upgrade.crds:
+CreateReplace` and Flux does it for you.
 
 Without Helm: `kubectl apply -k config/default` (set the image in
 `config/manager/manager.yaml`).
@@ -108,12 +110,23 @@ off. Complete setups are in [examples](examples/).
 ## 4. Watch it decide
 
 ```sh
-kubectl get machines                 # state, target, watts
+kubectl get powerpolicy -o wide   # PLANNED / SUGGESTED: what it would do now
+kubectl get machines              # WOULD: dry-run decision; IDLE: unneeded for how long
 kubectl get powerpolicy default -o yaml
-kubectl get events --field-selector reason=WouldPowerOff
+kubectl get events -A --field-selector reason=WouldPowerOff
 ```
 
-`status.lastActions` says what it would do and why;
+```
+NAME      DRYRUN   ON  OFF  WATTS   PRICE    COST/H   PLANNED   SUGGESTED          LAST RUN
+default   true     9   0    756.4   0.3883   0.2937   qb2=Off   pi4-1=Off,pi4-2=Off  9s
+
+NAME   NODE   STATE  TARGET  WOULD  WATTS  IDLE
+qb2    qb2    On     On      Off    582.6  16m
+spark  spark  On     On             56.5
+```
+
+A machine shows up after it has been unneeded for `scaleDown.unneededTime`
+(15 minutes). `status.lastActions` says what it would do and why;
 `status.unsatisfiablePods` lists pending pods that no machine (on or off) can
 run; `status.warnings` lists problems reading prices or sensors.
 

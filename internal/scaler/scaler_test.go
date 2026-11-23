@@ -286,6 +286,15 @@ func TestDryRunTouchesNothing(t *testing.T) {
 	if len(p.Status.LastActions) != 1 || p.Status.LastActions[0].Machine != "a" {
 		t.Fatalf("dry run should report the decision: %+v", p.Status.LastActions)
 	}
+	if p.Status.Planned != "a=Off" {
+		t.Fatalf("status.planned = %q, want a=Off", p.Status.Planned)
+	}
+	if got := h.m("a").Status; got.WouldTarget != v1alpha1.TargetOff || got.Target != v1alpha1.TargetOn {
+		t.Fatalf("dry run should set wouldTarget=Off and leave target On: %+v", got)
+	}
+	if w := h.m("b").Status.WouldTarget; w != "" {
+		t.Fatalf("b has no decision, wouldTarget = %q", w)
+	}
 }
 
 // A dry-run decision must be repeated every loop, not alternate with the

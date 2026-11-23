@@ -435,6 +435,10 @@ func (s *Scaler) act(ctx context.Context, spec v1alpha1.PowerPolicySpec, machine
 		case spec.DryRun:
 			s.auditDryRun(m, a, planned)
 		}
+		st.WouldTarget = ""
+		if spec.DryRun && planned {
+			st.WouldTarget = a.Target
+		}
 		if since, ok := res.Unneeded[name]; ok {
 			if st.UnneededSince == nil || !st.UnneededSince.Time.Equal(since) {
 				st.UnneededSince = &metav1.Time{Time: since}
@@ -496,6 +500,15 @@ func (s *Scaler) patchStatus(ctx context.Context, orig, m *v1alpha1.Machine) {
 	}
 }
 
+// oneLine renders actions as "a=Off,b=On" for kubectl columns.
+func oneLine(actions []v1alpha1.PlannedAction) string {
+	parts := make([]string, len(actions))
+	for i, a := range actions {
+		parts[i] = a.Machine + "=" + string(a.Target)
+	}
+	return strings.Join(parts, ",")
+}
+
 func abs(x float64) float64 {
 	if x < 0 {
 		return -x
@@ -544,6 +557,7 @@ func (s *Scaler) publish(ctx context.Context, p *v1alpha1.PowerPolicy, in planne
 	for _, a := range res.Actions {
 		st.LastActions = append(st.LastActions, v1alpha1.PlannedAction{Machine: a.Node, Target: a.Target, Reason: a.Reason})
 	}
+	st.Planned, st.Suggested = oneLine(st.LastActions), oneLine(st.Suggestions)
 	if !equality.Semantic.DeepEqual(orig.Status, p.Status) {
 		if err := s.Client.Status().Patch(ctx, p, client.MergeFrom(orig)); err != nil {
 			log.FromContext(ctx).Error(err, "updating PowerPolicy status")

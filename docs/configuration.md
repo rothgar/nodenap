@@ -31,7 +31,7 @@ use Go syntax (`30s`, `15m`, `4m15s`).
 | `scaleDown.drainTimeout` | `10m` | Give up and keep the machine on if pods haven't left. |
 | `scaleDown.shutdownTimeout` | `5m` | Time for the OS to shut down before `powerCut` (or `Failed`). |
 | `scaleDown.minSavingsPerHour` | `"0"` | Skip power-offs saving less than this per hour. |
-| `energy.timeZone` | `UTC` | IANA zone for tariff windows. |
+| `energy.timeZone` | `UTC` | IANA zone (e.g. `America/Los_Angeles`) that tariff window times, days and months are in; daylight saving is handled. Status timestamps stay UTC, as everywhere in Kubernetes. |
 | `energy.currency` | | Display only. |
 | `energy.tariff.defaultPrice` | | Price outside all windows. |
 | `energy.tariff.windows[]` | | `{start, end, price, days?, months?}`; first match wins; `end` before `start` wraps midnight; `start == end` is the whole day. |

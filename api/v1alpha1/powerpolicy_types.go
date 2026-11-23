@@ -214,6 +214,12 @@ type PowerPolicyStatus struct {
 	LastRunTime *metav1.Time `json:"lastRunTime,omitempty"`
 	// +optional
 	Error string `json:"error,omitempty"`
+	// lastActions in one line, e.g. "qb2=Off".
+	// +optional
+	Planned string `json:"planned,omitempty"`
+	// suggestions in one line, e.g. "pi4-1=Off,pi4-2=Off".
+	// +optional
+	Suggested string `json:"suggested,omitempty"`
 	// Import price now, per kWh.
 	// +optional
 	Price string `json:"price,omitempty"`
@@ -288,6 +294,9 @@ type Savings struct {
 // +kubebuilder:printcolumn:name="Watts",type=string,JSONPath=`.status.machinesWatts`
 // +kubebuilder:printcolumn:name="Price",type=string,JSONPath=`.status.effectivePrice`
 // +kubebuilder:printcolumn:name="Cost/h",type=string,JSONPath=`.status.costPerHour`
+// +kubebuilder:printcolumn:name="Planned",type=string,JSONPath=`.status.planned`
+// +kubebuilder:printcolumn:name="Suggested",type=string,JSONPath=`.status.suggested`,priority=1
+// +kubebuilder:printcolumn:name="Last Run",type=date,JSONPath=`.status.lastRunTime`
 type PowerPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

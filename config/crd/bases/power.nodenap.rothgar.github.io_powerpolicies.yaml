@@ -33,6 +33,16 @@ spec:
     - jsonPath: .status.costPerHour
       name: Cost/h
       type: string
+    - jsonPath: .status.planned
+      name: Planned
+      type: string
+    - jsonPath: .status.suggested
+      name: Suggested
+      priority: 1
+      type: string
+    - jsonPath: .status.lastRunTime
+      name: Last Run
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -861,6 +871,9 @@ spec:
               pendingPods:
                 format: int32
                 type: integer
+              planned:
+                description: lastActions in one line, e.g. "qb2=Off".
+                type: string
               price:
                 description: Import price now, per kWh.
                 type: string
@@ -895,6 +908,9 @@ spec:
                     format: int64
                     type: integer
                 type: object
+              suggested:
+                description: suggestions in one line, e.g. "pi4-1=Off,pi4-2=Off".
+                type: string
               suggestions:
                 description: |-
                   What would happen to worker nodes that have no Machine yet, if they had
