@@ -1,0 +1,14 @@
+nodenap {{ .Chart.AppVersion }} is running in namespace {{ .Release.Namespace }}.
+{{- if and .Values.policy.create .Values.policy.dryRun }}
+
+It is in DRY RUN: it only watches and suggests, and never powers anything off.
+After about 15 minutes, see which nodes could sleep:
+
+  kubectl get powerpolicy default -o jsonpath='{range .status.suggestions[*]}{.target}{"\t"}{.machine}{"\t"}{.reason}{"\n"}{end}'
+{{- end }}
+
+Next steps (https://github.com/rothgar/nodenap):
+  1. Set your electricity price: kubectl edit powerpolicy default   (docs/power-costs.md)
+  2. Describe each machine that may sleep, with how to wake and shut it down:
+     a Machine resource (docs/power-drivers.md, docs/examples/).
+  3. When the decisions look right: kubectl patch powerpolicy default --type merge -p '{"spec":{"dryRun":false}}'

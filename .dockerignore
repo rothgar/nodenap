@@ -1,0 +1,6 @@
+bin/
+.git/
+.env
+local/
+*.pdf
+SCE_*.csv

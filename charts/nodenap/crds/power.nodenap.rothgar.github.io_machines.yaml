@@ -1,0 +1,1112 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: machines.power.nodenap.rothgar.github.io
+spec:
+  group: power.nodenap.rothgar.github.io
+  names:
+    kind: Machine
+    listKind: MachineList
+    plural: machines
+    singular: machine
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.nodeName
+      name: Node
+      type: string
+    - jsonPath: .status.powerState
+      name: State
+      type: string
+    - jsonPath: .status.target
+      name: Target
+      type: string
+    - jsonPath: .status.measuredWatts
+      name: Watts
+      type: string
+    - jsonPath: .status.targetReason
+      name: Reason
+      priority: 1
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Machine is a physical machine whose power nodenap controls.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MachineSpec says how to switch and measure one physical machine.
+            properties:
+              alwaysOn:
+                description: Never power off (still measured).
+                type: boolean
+              bootTimeout:
+                description: Overrides the policy's scaleUp.bootTimeout.
+                type: string
+              nodeName:
+                description: Kubernetes node name. Defaults to the Machine's name.
+                type: string
+              powerCut:
+                description: |-
+                  Cut power after the node is NotReady (or the shutdown timed out),
+                  e.g. a smart plug for 0 W standby. Don't use with Wake-on-LAN.
+                properties:
+                  http:
+                    description: 'Any HTTP API: smart plugs (Shelly, Tasmota), Home
+                      Assistant, PDUs.'
+                    properties:
+                      auth:
+                        description: |-
+                          HTTPAuth is basic or digest auth from a Secret with "username" (optional,
+                          default "admin") and "password".
+                        properties:
+                          secretRef:
+                            description: SecretRef names a Secret. An empty namespace
+                              means the controller's own.
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          type:
+                            enum:
+                            - basic
+                            - digest
+                            type: string
+                        required:
+                        - secretRef
+                        - type
+                        type: object
+                      body:
+                        type: string
+                      field:
+                        description: |-
+                          For readings: dot path to the number in the JSON response, e.g.
+                          "apower" or "meters.0.power". Empty: the whole body is the number.
+                        type: string
+                      headers:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      headersSecretRef:
+                        description: Every key of this Secret is sent as a header
+                          (e.g. Authorization).
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureSkipTLSVerify:
+                        type: boolean
+                      method:
+                        description: Defaults to POST for actions and GET for readings.
+                        type: string
+                      scale:
+                        description: 'For readings: multiplier (decimal string).'
+                        type: string
+                      url:
+                        type: string
+                    required:
+                    - url
+                    type: object
+                  ipmi:
+                    description: IPMI talks IPMI v2.0 (lanplus) to a BMC.
+                    properties:
+                      address:
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "username" and "password".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      port:
+                        description: Defaults to 623.
+                        format: int32
+                        type: integer
+                    required:
+                    - address
+                    - credentialsSecretRef
+                    type: object
+                  omni:
+                    description: Omni shuts a Talos machine down through Sidero Omni.
+                    properties:
+                      credentialsSecretRef:
+                        description: Secret with "endpoint" and "serviceAccountKey"
+                          (Operator role).
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      machineId:
+                        description: Defaults to the machine whose Kubernetes node
+                          name matches.
+                        type: string
+                    required:
+                    - credentialsSecretRef
+                    type: object
+                  prometheus:
+                    description: |-
+                      PrometheusSource is a PromQL instant query. In Machine sensors
+                      {{ .NodeName }} is replaced with the node name.
+                    properties:
+                      query:
+                        type: string
+                    required:
+                    - query
+                    type: object
+                  redfish:
+                    description: Redfish talks to a BMC's Redfish API (iDRAC, iLO,
+                      XClarity, OpenBMC, ...).
+                    properties:
+                      address:
+                        description: e.g. https://10.0.0.20
+                        type: string
+                      chassisId:
+                        description: Defaults to the first Chassis (power readings).
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "username" and "password".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureSkipTLSVerify:
+                        description: BMCs usually have self-signed certificates.
+                        type: boolean
+                      systemId:
+                        description: Defaults to the first ComputerSystem.
+                        type: string
+                    required:
+                    - address
+                    - credentialsSecretRef
+                    type: object
+                  ssh:
+                    description: SSH runs a shutdown command (for k3s, kubeadm, ...
+                      on a regular distro).
+                    properties:
+                      address:
+                        description: host[:port]; defaults to the node's InternalIP.
+                        type: string
+                      command:
+                        description: Defaults to "poweroff". Use "sudo systemctl poweroff"
+                          for non-root users.
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "privateKey" and optionally "knownHosts".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureIgnoreHostKey:
+                        type: boolean
+                      user:
+                        description: Defaults to root.
+                        type: string
+                    required:
+                    - credentialsSecretRef
+                    type: object
+                  talos:
+                    description: Talos shuts a Talos node down through the Talos API.
+                    properties:
+                      endpoint:
+                        description: Defaults to the node's InternalIP.
+                        type: string
+                      talosconfigSecretRef:
+                        description: Secret key with a talosconfig (os:operator role
+                          is enough).
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - talosconfigSecretRef
+                    type: object
+                  wakeOnLAN:
+                    description: |-
+                      WakeOnLAN sends a magic packet. The controller pod needs hostNetwork (or a
+                      directed broadcast address) to reach the machine's LAN.
+                    properties:
+                      broadcast:
+                        description: Defaults to 255.255.255.255.
+                        type: string
+                      mac:
+                        pattern: ^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$
+                        type: string
+                      port:
+                        description: Defaults to 9.
+                        format: int32
+                        type: integer
+                    required:
+                    - mac
+                    type: object
+                type: object
+              powerCutDelay:
+                description: Wait after NotReady before cutting power. Default 30s.
+                type: string
+              powerOn:
+                description: Ways to power on, tried in order; each gets bootTimeout.
+                items:
+                  description: "Driver is one way of acting on (or measuring) a machine.
+                    Set exactly one\nfield. What it does depends on where it is used:\n\n\t
+                    \          powerOn  shutdown  powerCut  sensor\n\twakeOnLAN     ✓\n\thttp
+                    \         ✓        ✓         ✓        ✓\n\tipmi          ✓        ✓(soft)
+                    \  ✓        ✓(DCMI)\n\tredfish       ✓        ✓         ✓        ✓\n\tomni
+                    \         ✓*       ✓\n\ttalos                  ✓\n\tssh                    ✓\n\tprometheus
+                    \                               ✓\n\n* Omni can only power on
+                    machines run by an Omni infrastructure provider."
+                  properties:
+                    http:
+                      description: 'Any HTTP API: smart plugs (Shelly, Tasmota), Home
+                        Assistant, PDUs.'
+                      properties:
+                        auth:
+                          description: |-
+                            HTTPAuth is basic or digest auth from a Secret with "username" (optional,
+                            default "admin") and "password".
+                          properties:
+                            secretRef:
+                              description: SecretRef names a Secret. An empty namespace
+                                means the controller's own.
+                              properties:
+                                name:
+                                  type: string
+                                namespace:
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type:
+                              enum:
+                              - basic
+                              - digest
+                              type: string
+                          required:
+                          - secretRef
+                          - type
+                          type: object
+                        body:
+                          type: string
+                        field:
+                          description: |-
+                            For readings: dot path to the number in the JSON response, e.g.
+                            "apower" or "meters.0.power". Empty: the whole body is the number.
+                          type: string
+                        headers:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        headersSecretRef:
+                          description: Every key of this Secret is sent as a header
+                            (e.g. Authorization).
+                          properties:
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        insecureSkipTLSVerify:
+                          type: boolean
+                        method:
+                          description: Defaults to POST for actions and GET for readings.
+                          type: string
+                        scale:
+                          description: 'For readings: multiplier (decimal string).'
+                          type: string
+                        url:
+                          type: string
+                      required:
+                      - url
+                      type: object
+                    ipmi:
+                      description: IPMI talks IPMI v2.0 (lanplus) to a BMC.
+                      properties:
+                        address:
+                          type: string
+                        credentialsSecretRef:
+                          description: Secret with "username" and "password".
+                          properties:
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        port:
+                          description: Defaults to 623.
+                          format: int32
+                          type: integer
+                      required:
+                      - address
+                      - credentialsSecretRef
+                      type: object
+                    omni:
+                      description: Omni shuts a Talos machine down through Sidero
+                        Omni.
+                      properties:
+                        credentialsSecretRef:
+                          description: Secret with "endpoint" and "serviceAccountKey"
+                            (Operator role).
+                          properties:
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        machineId:
+                          description: Defaults to the machine whose Kubernetes node
+                            name matches.
+                          type: string
+                      required:
+                      - credentialsSecretRef
+                      type: object
+                    prometheus:
+                      description: |-
+                        PrometheusSource is a PromQL instant query. In Machine sensors
+                        {{ .NodeName }} is replaced with the node name.
+                      properties:
+                        query:
+                          type: string
+                      required:
+                      - query
+                      type: object
+                    redfish:
+                      description: Redfish talks to a BMC's Redfish API (iDRAC, iLO,
+                        XClarity, OpenBMC, ...).
+                      properties:
+                        address:
+                          description: e.g. https://10.0.0.20
+                          type: string
+                        chassisId:
+                          description: Defaults to the first Chassis (power readings).
+                          type: string
+                        credentialsSecretRef:
+                          description: Secret with "username" and "password".
+                          properties:
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        insecureSkipTLSVerify:
+                          description: BMCs usually have self-signed certificates.
+                          type: boolean
+                        systemId:
+                          description: Defaults to the first ComputerSystem.
+                          type: string
+                      required:
+                      - address
+                      - credentialsSecretRef
+                      type: object
+                    ssh:
+                      description: SSH runs a shutdown command (for k3s, kubeadm,
+                        ... on a regular distro).
+                      properties:
+                        address:
+                          description: host[:port]; defaults to the node's InternalIP.
+                          type: string
+                        command:
+                          description: Defaults to "poweroff". Use "sudo systemctl
+                            poweroff" for non-root users.
+                          type: string
+                        credentialsSecretRef:
+                          description: Secret with "privateKey" and optionally "knownHosts".
+                          properties:
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        insecureIgnoreHostKey:
+                          type: boolean
+                        user:
+                          description: Defaults to root.
+                          type: string
+                      required:
+                      - credentialsSecretRef
+                      type: object
+                    talos:
+                      description: Talos shuts a Talos node down through the Talos
+                        API.
+                      properties:
+                        endpoint:
+                          description: Defaults to the node's InternalIP.
+                          type: string
+                        talosconfigSecretRef:
+                          description: Secret key with a talosconfig (os:operator
+                            role is enough).
+                          properties:
+                            key:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                      required:
+                      - talosconfigSecretRef
+                      type: object
+                    wakeOnLAN:
+                      description: |-
+                        WakeOnLAN sends a magic packet. The controller pod needs hostNetwork (or a
+                        directed broadcast address) to reach the machine's LAN.
+                      properties:
+                        broadcast:
+                          description: Defaults to 255.255.255.255.
+                          type: string
+                        mac:
+                          pattern: ^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$
+                          type: string
+                        port:
+                          description: Defaults to 9.
+                          format: int32
+                          type: integer
+                      required:
+                      - mac
+                      type: object
+                  type: object
+                type: array
+              priority:
+                description: Higher is preferred to stay on and to be woken (tie-breaker).
+                format: int32
+                type: integer
+              profile:
+                description: Profile is the machine's expected power use.
+                properties:
+                  bootTime:
+                    description: Power-on to Node Ready. Default 3m.
+                    type: string
+                  idleWatts:
+                    description: Watts when on and idle. Default 30.
+                    type: string
+                  maxWatts:
+                    description: Watts at full load (caps the estimate).
+                    type: string
+                  offWatts:
+                    description: Standby watts while off (0 when power is cut).
+                    type: string
+                  wattsPerCore:
+                    description: Extra watts per busy CPU core. Default 4.
+                    type: string
+                type: object
+              sensor:
+                description: Where the machine's watts come from.
+                properties:
+                  http:
+                    description: 'Any HTTP API: smart plugs (Shelly, Tasmota), Home
+                      Assistant, PDUs.'
+                    properties:
+                      auth:
+                        description: |-
+                          HTTPAuth is basic or digest auth from a Secret with "username" (optional,
+                          default "admin") and "password".
+                        properties:
+                          secretRef:
+                            description: SecretRef names a Secret. An empty namespace
+                              means the controller's own.
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          type:
+                            enum:
+                            - basic
+                            - digest
+                            type: string
+                        required:
+                        - secretRef
+                        - type
+                        type: object
+                      body:
+                        type: string
+                      field:
+                        description: |-
+                          For readings: dot path to the number in the JSON response, e.g.
+                          "apower" or "meters.0.power". Empty: the whole body is the number.
+                        type: string
+                      headers:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      headersSecretRef:
+                        description: Every key of this Secret is sent as a header
+                          (e.g. Authorization).
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureSkipTLSVerify:
+                        type: boolean
+                      method:
+                        description: Defaults to POST for actions and GET for readings.
+                        type: string
+                      scale:
+                        description: 'For readings: multiplier (decimal string).'
+                        type: string
+                      url:
+                        type: string
+                    required:
+                    - url
+                    type: object
+                  ipmi:
+                    description: IPMI talks IPMI v2.0 (lanplus) to a BMC.
+                    properties:
+                      address:
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "username" and "password".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      port:
+                        description: Defaults to 623.
+                        format: int32
+                        type: integer
+                    required:
+                    - address
+                    - credentialsSecretRef
+                    type: object
+                  omni:
+                    description: Omni shuts a Talos machine down through Sidero Omni.
+                    properties:
+                      credentialsSecretRef:
+                        description: Secret with "endpoint" and "serviceAccountKey"
+                          (Operator role).
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      machineId:
+                        description: Defaults to the machine whose Kubernetes node
+                          name matches.
+                        type: string
+                    required:
+                    - credentialsSecretRef
+                    type: object
+                  prometheus:
+                    description: |-
+                      PrometheusSource is a PromQL instant query. In Machine sensors
+                      {{ .NodeName }} is replaced with the node name.
+                    properties:
+                      query:
+                        type: string
+                    required:
+                    - query
+                    type: object
+                  redfish:
+                    description: Redfish talks to a BMC's Redfish API (iDRAC, iLO,
+                      XClarity, OpenBMC, ...).
+                    properties:
+                      address:
+                        description: e.g. https://10.0.0.20
+                        type: string
+                      chassisId:
+                        description: Defaults to the first Chassis (power readings).
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "username" and "password".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureSkipTLSVerify:
+                        description: BMCs usually have self-signed certificates.
+                        type: boolean
+                      systemId:
+                        description: Defaults to the first ComputerSystem.
+                        type: string
+                    required:
+                    - address
+                    - credentialsSecretRef
+                    type: object
+                  ssh:
+                    description: SSH runs a shutdown command (for k3s, kubeadm, ...
+                      on a regular distro).
+                    properties:
+                      address:
+                        description: host[:port]; defaults to the node's InternalIP.
+                        type: string
+                      command:
+                        description: Defaults to "poweroff". Use "sudo systemctl poweroff"
+                          for non-root users.
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "privateKey" and optionally "knownHosts".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureIgnoreHostKey:
+                        type: boolean
+                      user:
+                        description: Defaults to root.
+                        type: string
+                    required:
+                    - credentialsSecretRef
+                    type: object
+                  talos:
+                    description: Talos shuts a Talos node down through the Talos API.
+                    properties:
+                      endpoint:
+                        description: Defaults to the node's InternalIP.
+                        type: string
+                      talosconfigSecretRef:
+                        description: Secret key with a talosconfig (os:operator role
+                          is enough).
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - talosconfigSecretRef
+                    type: object
+                  wakeOnLAN:
+                    description: |-
+                      WakeOnLAN sends a magic packet. The controller pod needs hostNetwork (or a
+                      directed broadcast address) to reach the machine's LAN.
+                    properties:
+                      broadcast:
+                        description: Defaults to 255.255.255.255.
+                        type: string
+                      mac:
+                        pattern: ^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$
+                        type: string
+                      port:
+                        description: Defaults to 9.
+                        format: int32
+                        type: integer
+                    required:
+                    - mac
+                    type: object
+                type: object
+              shutdown:
+                description: Graceful OS shutdown.
+                properties:
+                  http:
+                    description: 'Any HTTP API: smart plugs (Shelly, Tasmota), Home
+                      Assistant, PDUs.'
+                    properties:
+                      auth:
+                        description: |-
+                          HTTPAuth is basic or digest auth from a Secret with "username" (optional,
+                          default "admin") and "password".
+                        properties:
+                          secretRef:
+                            description: SecretRef names a Secret. An empty namespace
+                              means the controller's own.
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          type:
+                            enum:
+                            - basic
+                            - digest
+                            type: string
+                        required:
+                        - secretRef
+                        - type
+                        type: object
+                      body:
+                        type: string
+                      field:
+                        description: |-
+                          For readings: dot path to the number in the JSON response, e.g.
+                          "apower" or "meters.0.power". Empty: the whole body is the number.
+                        type: string
+                      headers:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      headersSecretRef:
+                        description: Every key of this Secret is sent as a header
+                          (e.g. Authorization).
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureSkipTLSVerify:
+                        type: boolean
+                      method:
+                        description: Defaults to POST for actions and GET for readings.
+                        type: string
+                      scale:
+                        description: 'For readings: multiplier (decimal string).'
+                        type: string
+                      url:
+                        type: string
+                    required:
+                    - url
+                    type: object
+                  ipmi:
+                    description: IPMI talks IPMI v2.0 (lanplus) to a BMC.
+                    properties:
+                      address:
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "username" and "password".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      port:
+                        description: Defaults to 623.
+                        format: int32
+                        type: integer
+                    required:
+                    - address
+                    - credentialsSecretRef
+                    type: object
+                  omni:
+                    description: Omni shuts a Talos machine down through Sidero Omni.
+                    properties:
+                      credentialsSecretRef:
+                        description: Secret with "endpoint" and "serviceAccountKey"
+                          (Operator role).
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      machineId:
+                        description: Defaults to the machine whose Kubernetes node
+                          name matches.
+                        type: string
+                    required:
+                    - credentialsSecretRef
+                    type: object
+                  prometheus:
+                    description: |-
+                      PrometheusSource is a PromQL instant query. In Machine sensors
+                      {{ .NodeName }} is replaced with the node name.
+                    properties:
+                      query:
+                        type: string
+                    required:
+                    - query
+                    type: object
+                  redfish:
+                    description: Redfish talks to a BMC's Redfish API (iDRAC, iLO,
+                      XClarity, OpenBMC, ...).
+                    properties:
+                      address:
+                        description: e.g. https://10.0.0.20
+                        type: string
+                      chassisId:
+                        description: Defaults to the first Chassis (power readings).
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "username" and "password".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureSkipTLSVerify:
+                        description: BMCs usually have self-signed certificates.
+                        type: boolean
+                      systemId:
+                        description: Defaults to the first ComputerSystem.
+                        type: string
+                    required:
+                    - address
+                    - credentialsSecretRef
+                    type: object
+                  ssh:
+                    description: SSH runs a shutdown command (for k3s, kubeadm, ...
+                      on a regular distro).
+                    properties:
+                      address:
+                        description: host[:port]; defaults to the node's InternalIP.
+                        type: string
+                      command:
+                        description: Defaults to "poweroff". Use "sudo systemctl poweroff"
+                          for non-root users.
+                        type: string
+                      credentialsSecretRef:
+                        description: Secret with "privateKey" and optionally "knownHosts".
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      insecureIgnoreHostKey:
+                        type: boolean
+                      user:
+                        description: Defaults to root.
+                        type: string
+                    required:
+                    - credentialsSecretRef
+                    type: object
+                  talos:
+                    description: Talos shuts a Talos node down through the Talos API.
+                    properties:
+                      endpoint:
+                        description: Defaults to the node's InternalIP.
+                        type: string
+                      talosconfigSecretRef:
+                        description: Secret key with a talosconfig (os:operator role
+                          is enough).
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - talosconfigSecretRef
+                    type: object
+                  wakeOnLAN:
+                    description: |-
+                      WakeOnLAN sends a magic packet. The controller pod needs hostNetwork (or a
+                      directed broadcast address) to reach the machine's LAN.
+                    properties:
+                      broadcast:
+                        description: Defaults to 255.255.255.255.
+                        type: string
+                      mac:
+                        pattern: ^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$
+                        type: string
+                      port:
+                        description: Defaults to 9.
+                        format: int32
+                        type: integer
+                    required:
+                    - mac
+                    type: object
+                type: object
+            type: object
+          status:
+            description: MachineStatus is the observed state.
+            properties:
+              cachedNode:
+                description: |-
+                  CachedNode is the Node as last seen while on: what the planner schedules
+                  against while the machine is off.
+                properties:
+                  allocatable:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: ResourceList is a set of (resource name, quantity)
+                      pairs.
+                    type: object
+                  capturedAt:
+                    format: date-time
+                    type: string
+                  daemonSetRequests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: Requests of the DaemonSet pods that will start when
+                      it boots.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  taints:
+                    items:
+                      description: |-
+                        The node this Taint is attached to has the "effect" on
+                        any pod that does not tolerate the Taint.
+                      properties:
+                        effect:
+                          description: |-
+                            Required. The effect of the taint on pods
+                            that do not tolerate the taint.
+                            Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
+                          type: string
+                        key:
+                          description: Required. The taint key to be applied to a
+                            node.
+                          type: string
+                        timeAdded:
+                          description: TimeAdded represents the time at which the
+                            taint was added.
+                          format: date-time
+                          type: string
+                        value:
+                          description: The taint value corresponding to the taint
+                            key.
+                          type: string
+                      required:
+                      - effect
+                      - key
+                      type: object
+                    type: array
+                required:
+                - capturedAt
+                type: object
+              failureCount:
+                format: int32
+                type: integer
+              lastTransitionTime:
+                format: date-time
+                type: string
+              measuredAt:
+                format: date-time
+                type: string
+              measuredWatts:
+                type: string
+              message:
+                type: string
+              powerOnAttempt:
+                description: Index into spec.powerOn being tried.
+                format: int32
+                type: integer
+              powerState:
+                description: PowerState is a machine's observed state.
+                enum:
+                - Unknown
+                - "On"
+                - Draining
+                - ShuttingDown
+                - "Off"
+                - Booting
+                - Failed
+                type: string
+              poweredOffAt:
+                description: |-
+                  Set when the scaler itself powered the machine off. Only then are pods
+                  still bound to the node force-deleted.
+                format: date-time
+                type: string
+              target:
+                description: Target is what the planner (or an override) wants.
+                enum:
+                - "On"
+                - "Off"
+                type: string
+              targetReason:
+                type: string
+              unneededSince:
+                description: When the planner first saw the machine as unneeded.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

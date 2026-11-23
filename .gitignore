@@ -1,0 +1,16 @@
+bin/
+*.test
+cover.out
+
+# Local secrets and private utility data
+HA_TOKEN
+SCE_*.csv
+.env
+sce-bill.pdf
+local/
+ViewBill*.pdf
+
+# Build outputs
+/nodenap
+/powerplan
+*.tgz

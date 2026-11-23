@@ -1,0 +1,53 @@
+# Solar and a home battery read from Home Assistant (Enphase shown; Tesla
+# Powerwall, SolarEdge, etc. work the same way), on a time-of-use plan with
+# retail net metering. See docs/solar-and-batteries.md.
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: PowerPolicy
+metadata:
+  name: default
+spec:
+  dryRun: true
+  integrations:
+    homeAssistantURL: http://homeassistant.home:8123
+    homeAssistantTokenSecretRef: {name: home-assistant}
+  energy:
+    timeZone: America/Los_Angeles
+    currency: USD
+    tariff:
+      defaultPrice: "0.39"
+      windows:
+        - {start: "17:00", end: "20:00", price: "0.57"}
+        - {start: "08:00", end: "17:00", price: "0.33"}
+    # Net metering: exports credited at the import price minus charges that
+    # are only billed on consumption. Without net metering use exportPrice.
+    netMetering:
+      nonBypassableChargesPerKWh: "0.012"
+    # Signed watts at the meter, + = exporting. Enphase reports net
+    # *consumption* in kW (+ = importing), so flip and scale it.
+    gridPower:
+      homeAssistant: {entity: sensor.envoy_123456_current_net_power_consumption}
+      scale: "-1000"
+    battery:
+      soc:
+        homeAssistant: {entity: sensor.envoy_123456_battery}
+      power:   # + discharging; summed over every battery unit
+        homeAssistant:
+          entities: [sensor.encharge_111_power, sensor.encharge_222_power]
+      reserveSoCPercent: 20
+      costPerKWh: "0.57"   # a stored kWh would otherwise offset the 5-8pm price
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: worker-1
+spec:
+  powerOn:
+    - wakeOnLAN: {mac: "aa:bb:cc:00:00:11"}
+  shutdown:
+    talos:
+      talosconfigSecretRef: {name: talosconfig}
+  sensor:
+    http:
+      url: http://homeassistant.home:8123/api/states/sensor.worker_1_power
+      field: state
+      headersSecretRef: {name: home-assistant-headers}

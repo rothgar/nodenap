@@ -1,0 +1,13 @@
+# One Machine per physical machine the scaler may power off.
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: worker-1   # the Kubernetes node name
+spec:
+  powerOn:
+    - wakeOnLAN: {mac: "aa:bb:cc:dd:ee:01"}
+  shutdown:
+    talos:
+      talosconfigSecretRef: {name: talosconfig}
+  profile:
+    idleWatts: "15"

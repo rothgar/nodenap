@@ -1,0 +1,49 @@
+image:
+  repository: ghcr.io/rothgar/nodenap
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# A PowerPolicy created with the release. In dry run (the default) nodenap
+# only reports: status.suggestions lists which nodes could sleep, even before
+# you create any Machines. See https://github.com/rothgar/nodenap.
+policy:
+  create: true
+  dryRun: true
+  # Your all-in electricity price per kWh (docs/power-costs.md).
+  price: "0.20"
+  currency: ""
+  timeZone: ""
+  minNodesOn: 1
+
+# Wake-on-LAN broadcasts need to reach the machines' LAN.
+hostNetwork: true
+
+# Prefer an always-on control-plane node, but run anywhere if there isn't
+# one (nodenap never powers off the node it runs on).
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - {key: node-role.kubernetes.io/control-plane, operator: Exists}
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+nodeSelector: {}
+
+metricsPort: 18080
+probePort: 18081
+logLevel: info
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+serviceMonitor:
+  enabled: false

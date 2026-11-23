@@ -1,0 +1,22 @@
+{{- if .Values.policy.create }}
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: PowerPolicy
+metadata:
+  name: default
+  labels: {{- include "pa.labels" . | nindent 4 }}
+  annotations:
+    # Keep your edits: Helm won't overwrite or delete the policy on upgrade/uninstall.
+    helm.sh/resource-policy: keep
+spec:
+  dryRun: {{ .Values.policy.dryRun }}
+  minNodesOn: {{ .Values.policy.minNodesOn }}
+  energy:
+    {{- with .Values.policy.timeZone }}
+    timeZone: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.policy.currency }}
+    currency: {{ . | quote }}
+    {{- end }}
+    tariff:
+      defaultPrice: {{ .Values.policy.price | quote }}
+{{- end }}

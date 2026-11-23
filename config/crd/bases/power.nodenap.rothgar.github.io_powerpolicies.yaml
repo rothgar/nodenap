@@ -1,0 +1,936 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: powerpolicies.power.nodenap.rothgar.github.io
+spec:
+  group: power.nodenap.rothgar.github.io
+  names:
+    kind: PowerPolicy
+    listKind: PowerPolicyList
+    plural: powerpolicies
+    singular: powerpolicy
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.dryRun
+      name: DryRun
+      type: boolean
+    - jsonPath: .status.nodesOn
+      name: "On"
+      type: integer
+    - jsonPath: .status.nodesOff
+      name: "Off"
+      type: integer
+    - jsonPath: .status.machinesWatts
+      name: Watts
+      type: string
+    - jsonPath: .status.effectivePrice
+      name: Price
+      type: string
+    - jsonPath: .status.costPerHour
+      name: Cost/h
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: PowerPolicy configures nodenap.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              PowerPolicySpec configures the scaler. Only one PowerPolicy is used (the
+              first by name). Without one, the scaler only observes.
+            properties:
+              dryRun:
+                description: Report decisions without acting on any machine.
+                type: boolean
+              energy:
+                description: Energy describes what electricity costs. All prices are
+                  per kWh.
+                properties:
+                  battery:
+                    description: |-
+                      Battery describes a home battery. It only counts as the source of extra
+                      load while it is above reserve and (when power is given) discharging.
+                    properties:
+                      costPerKWh:
+                        description: |-
+                          What a kWh from the battery is worth (usually the peak price it would
+                          otherwise offset). Empty: the grid price.
+                        type: string
+                      power:
+                        description: Watts, + discharging / − charging.
+                        properties:
+                          homeAssistant:
+                            description: Home Assistant entity state (or attribute).
+                              Several entities are summed.
+                            properties:
+                              attribute:
+                                description: Read this attribute instead of the state.
+                                type: string
+                              entities:
+                                description: Summed with Entity, e.g. one power sensor
+                                  per battery.
+                                items:
+                                  type: string
+                                type: array
+                              entity:
+                                type: string
+                            type: object
+                          http:
+                            description: A JSON HTTP endpoint.
+                            properties:
+                              auth:
+                                description: |-
+                                  HTTPAuth is basic or digest auth from a Secret with "username" (optional,
+                                  default "admin") and "password".
+                                properties:
+                                  secretRef:
+                                    description: SecretRef names a Secret. An empty
+                                      namespace means the controller's own.
+                                    properties:
+                                      name:
+                                        type: string
+                                      namespace:
+                                        type: string
+                                    required:
+                                    - name
+                                    type: object
+                                  type:
+                                    enum:
+                                    - basic
+                                    - digest
+                                    type: string
+                                required:
+                                - secretRef
+                                - type
+                                type: object
+                              body:
+                                type: string
+                              field:
+                                description: |-
+                                  For readings: dot path to the number in the JSON response, e.g.
+                                  "apower" or "meters.0.power". Empty: the whole body is the number.
+                                type: string
+                              headers:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              headersSecretRef:
+                                description: Every key of this Secret is sent as a
+                                  header (e.g. Authorization).
+                                properties:
+                                  name:
+                                    type: string
+                                  namespace:
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              insecureSkipTLSVerify:
+                                type: boolean
+                              method:
+                                description: Defaults to POST for actions and GET
+                                  for readings.
+                                type: string
+                              scale:
+                                description: 'For readings: multiplier (decimal string).'
+                                type: string
+                              url:
+                                type: string
+                            required:
+                            - url
+                            type: object
+                          prometheus:
+                            description: PromQL instant query; the sum of returned
+                              samples is used.
+                            properties:
+                              query:
+                                type: string
+                            required:
+                            - query
+                            type: object
+                          scale:
+                            description: |-
+                              Multiplier applied to the value, e.g. "1000" for kW → W or "-1" to
+                              flip a sign. Decimal string.
+                            type: string
+                          static:
+                            description: A fixed number (decimal string).
+                            type: string
+                        type: object
+                      reserveSoCPercent:
+                        format: int32
+                        type: integer
+                      soc:
+                        description: State of charge, %.
+                        properties:
+                          homeAssistant:
+                            description: Home Assistant entity state (or attribute).
+                              Several entities are summed.
+                            properties:
+                              attribute:
+                                description: Read this attribute instead of the state.
+                                type: string
+                              entities:
+                                description: Summed with Entity, e.g. one power sensor
+                                  per battery.
+                                items:
+                                  type: string
+                                type: array
+                              entity:
+                                type: string
+                            type: object
+                          http:
+                            description: A JSON HTTP endpoint.
+                            properties:
+                              auth:
+                                description: |-
+                                  HTTPAuth is basic or digest auth from a Secret with "username" (optional,
+                                  default "admin") and "password".
+                                properties:
+                                  secretRef:
+                                    description: SecretRef names a Secret. An empty
+                                      namespace means the controller's own.
+                                    properties:
+                                      name:
+                                        type: string
+                                      namespace:
+                                        type: string
+                                    required:
+                                    - name
+                                    type: object
+                                  type:
+                                    enum:
+                                    - basic
+                                    - digest
+                                    type: string
+                                required:
+                                - secretRef
+                                - type
+                                type: object
+                              body:
+                                type: string
+                              field:
+                                description: |-
+                                  For readings: dot path to the number in the JSON response, e.g.
+                                  "apower" or "meters.0.power". Empty: the whole body is the number.
+                                type: string
+                              headers:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              headersSecretRef:
+                                description: Every key of this Secret is sent as a
+                                  header (e.g. Authorization).
+                                properties:
+                                  name:
+                                    type: string
+                                  namespace:
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              insecureSkipTLSVerify:
+                                type: boolean
+                              method:
+                                description: Defaults to POST for actions and GET
+                                  for readings.
+                                type: string
+                              scale:
+                                description: 'For readings: multiplier (decimal string).'
+                                type: string
+                              url:
+                                type: string
+                            required:
+                            - url
+                            type: object
+                          prometheus:
+                            description: PromQL instant query; the sum of returned
+                              samples is used.
+                            properties:
+                              query:
+                                type: string
+                            required:
+                            - query
+                            type: object
+                          scale:
+                            description: |-
+                              Multiplier applied to the value, e.g. "1000" for kW → W or "-1" to
+                              flip a sign. Decimal string.
+                            type: string
+                          static:
+                            description: A fixed number (decimal string).
+                            type: string
+                        type: object
+                    required:
+                    - soc
+                    type: object
+                  currency:
+                    description: Display only.
+                    type: string
+                  exportPrice:
+                    description: What an exported kWh earns you. Ignored with netMetering.
+                    type: string
+                  gridPower:
+                    description: |-
+                      Signed watts at the grid meter: positive = exporting, negative =
+                      importing. Enables solar-aware pricing.
+                    properties:
+                      homeAssistant:
+                        description: Home Assistant entity state (or attribute). Several
+                          entities are summed.
+                        properties:
+                          attribute:
+                            description: Read this attribute instead of the state.
+                            type: string
+                          entities:
+                            description: Summed with Entity, e.g. one power sensor
+                              per battery.
+                            items:
+                              type: string
+                            type: array
+                          entity:
+                            type: string
+                        type: object
+                      http:
+                        description: A JSON HTTP endpoint.
+                        properties:
+                          auth:
+                            description: |-
+                              HTTPAuth is basic or digest auth from a Secret with "username" (optional,
+                              default "admin") and "password".
+                            properties:
+                              secretRef:
+                                description: SecretRef names a Secret. An empty namespace
+                                  means the controller's own.
+                                properties:
+                                  name:
+                                    type: string
+                                  namespace:
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type:
+                                enum:
+                                - basic
+                                - digest
+                                type: string
+                            required:
+                            - secretRef
+                            - type
+                            type: object
+                          body:
+                            type: string
+                          field:
+                            description: |-
+                              For readings: dot path to the number in the JSON response, e.g.
+                              "apower" or "meters.0.power". Empty: the whole body is the number.
+                            type: string
+                          headers:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          headersSecretRef:
+                            description: Every key of this Secret is sent as a header
+                              (e.g. Authorization).
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          insecureSkipTLSVerify:
+                            type: boolean
+                          method:
+                            description: Defaults to POST for actions and GET for
+                              readings.
+                            type: string
+                          scale:
+                            description: 'For readings: multiplier (decimal string).'
+                            type: string
+                          url:
+                            type: string
+                        required:
+                        - url
+                        type: object
+                      prometheus:
+                        description: PromQL instant query; the sum of returned samples
+                          is used.
+                        properties:
+                          query:
+                            type: string
+                        required:
+                        - query
+                        type: object
+                      scale:
+                        description: |-
+                          Multiplier applied to the value, e.g. "1000" for kW → W or "-1" to
+                          flip a sign. Decimal string.
+                        type: string
+                      static:
+                        description: A fixed number (decimal string).
+                        type: string
+                    type: object
+                  netMetering:
+                    description: |-
+                      Retail net metering: exports are credited at the import price minus
+                      these per-kWh charges.
+                    properties:
+                      nonBypassableChargesPerKWh:
+                        type: string
+                    type: object
+                  price:
+                    description: |-
+                      Live price per kWh (e.g. a Home Assistant sensor from your utility or
+                      dynamic-tariff integration). Wins over the tariff when it has a value.
+                    properties:
+                      homeAssistant:
+                        description: Home Assistant entity state (or attribute). Several
+                          entities are summed.
+                        properties:
+                          attribute:
+                            description: Read this attribute instead of the state.
+                            type: string
+                          entities:
+                            description: Summed with Entity, e.g. one power sensor
+                              per battery.
+                            items:
+                              type: string
+                            type: array
+                          entity:
+                            type: string
+                        type: object
+                      http:
+                        description: A JSON HTTP endpoint.
+                        properties:
+                          auth:
+                            description: |-
+                              HTTPAuth is basic or digest auth from a Secret with "username" (optional,
+                              default "admin") and "password".
+                            properties:
+                              secretRef:
+                                description: SecretRef names a Secret. An empty namespace
+                                  means the controller's own.
+                                properties:
+                                  name:
+                                    type: string
+                                  namespace:
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type:
+                                enum:
+                                - basic
+                                - digest
+                                type: string
+                            required:
+                            - secretRef
+                            - type
+                            type: object
+                          body:
+                            type: string
+                          field:
+                            description: |-
+                              For readings: dot path to the number in the JSON response, e.g.
+                              "apower" or "meters.0.power". Empty: the whole body is the number.
+                            type: string
+                          headers:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          headersSecretRef:
+                            description: Every key of this Secret is sent as a header
+                              (e.g. Authorization).
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          insecureSkipTLSVerify:
+                            type: boolean
+                          method:
+                            description: Defaults to POST for actions and GET for
+                              readings.
+                            type: string
+                          scale:
+                            description: 'For readings: multiplier (decimal string).'
+                            type: string
+                          url:
+                            type: string
+                        required:
+                        - url
+                        type: object
+                      prometheus:
+                        description: PromQL instant query; the sum of returned samples
+                          is used.
+                        properties:
+                          query:
+                            type: string
+                        required:
+                        - query
+                        type: object
+                      scale:
+                        description: |-
+                          Multiplier applied to the value, e.g. "1000" for kW → W or "-1" to
+                          flip a sign. Decimal string.
+                        type: string
+                      static:
+                        description: A fixed number (decimal string).
+                        type: string
+                    type: object
+                  tariff:
+                    description: Tariff is a time-of-use price table. The first matching
+                      window wins.
+                    properties:
+                      defaultPrice:
+                        description: Price outside all windows (decimal string).
+                        type: string
+                      windows:
+                        items:
+                          description: |-
+                            TariffWindow is a price for part of the day. End before Start wraps
+                            midnight; Start == End is the whole day.
+                          properties:
+                            days:
+                              description: Mon..Sun; empty is every day.
+                              items:
+                                type: string
+                              type: array
+                            end:
+                              type: string
+                            months:
+                              description: 1..12; empty is every month.
+                              items:
+                                format: int32
+                                type: integer
+                              type: array
+                            price:
+                              type: string
+                            start:
+                              description: HH:MM local time.
+                              type: string
+                          required:
+                          - end
+                          - price
+                          - start
+                          type: object
+                        type: array
+                    required:
+                    - defaultPrice
+                    type: object
+                  timeZone:
+                    description: IANA time zone for tariff windows. Default UTC.
+                    type: string
+                type: object
+              headroom:
+                description: Spare schedulable capacity to keep on.
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                type: object
+              ignorePods:
+                description: |-
+                  Pods that never wake a machine and never keep one on (per-machine
+                  helpers, hardware managers). Annotation nodenap.rothgar.github.io/ignore=true
+                  does the same per pod.
+                items:
+                  description: PodMatcher selects pods; all set fields must match.
+                  properties:
+                    namespace:
+                      type: string
+                    selector:
+                      description: |-
+                        A label selector is a label query over a set of resources. The result of matchLabels and
+                        matchExpressions are ANDed. An empty label selector matches all objects. A null
+                        label selector matches no objects.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  type: object
+                type: array
+              integrations:
+                description: Integrations are shared endpoints for Values and sensors.
+                properties:
+                  homeAssistantTokenSecretRef:
+                    description: Long-lived access token (key "token" by default).
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  homeAssistantURL:
+                    description: e.g. http://homeassistant.home:8123
+                    type: string
+                  prometheusURL:
+                    description: e.g. http://prometheus-operated.monitoring:9090
+                    type: string
+                type: object
+              interval:
+                description: Loop interval. Default 15s.
+                type: string
+              minNodesOn:
+                description: Minimum Ready nodes to keep on.
+                format: int32
+                type: integer
+              neverPowerOffSelector:
+                description: |-
+                  Nodes never powered off (control-plane nodes and the scaler's own node
+                  always are).
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              nodeSelector:
+                description: 'Nodes counted as capacity. Default: all.'
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              scaleDown:
+                description: ScaleDown controls powering machines off.
+                properties:
+                  delayAfterScaleUp:
+                    description: No power-offs this soon after a wake. Default 10m.
+                    type: string
+                  disabled:
+                    type: boolean
+                  drainTimeout:
+                    description: Give up (and stay on) if pods haven't left after
+                      this. Default 10m.
+                    type: string
+                  maxConcurrent:
+                    description: Machines powering off at once. Default 1.
+                    format: int32
+                    type: integer
+                  minSavingsPerHour:
+                    description: |-
+                      Only power off if it saves at least this much per hour (decimal string,
+                      currency units). Default 0.
+                    type: string
+                  shutdownTimeout:
+                    description: Time for the OS to shut down before powerCut / Failed.
+                      Default 5m.
+                    type: string
+                  unneededTime:
+                    description: How long a machine must stay unneeded. Default 15m.
+                    type: string
+                  utilizationThresholdPercent:
+                    description: |-
+                      A machine is a candidate when its pods' CPU and memory requests are
+                      below this % of allocatable. Default 50.
+                    format: int32
+                    type: integer
+                type: object
+              scaleUp:
+                description: ScaleUp controls waking machines.
+                properties:
+                  bootTimeout:
+                    description: Per powerOn driver. Default 10m.
+                    type: string
+                  maxConcurrent:
+                    description: Machines booting at once. Default 3.
+                    format: int32
+                    type: integer
+                  pendingPodGracePeriod:
+                    description: How long a pod must be unschedulable first. Default
+                      30s.
+                    type: string
+                type: object
+              telemetry:
+                description: Opt-in anonymous daily report of energy saved. Off by
+                  default.
+                properties:
+                  enabled:
+                    type: boolean
+                  endpoint:
+                    description: Collector URL the report is POSTed to.
+                    type: string
+                type: object
+            type: object
+          status:
+            description: PowerPolicyStatus reports what the scaler sees and decided.
+            properties:
+              batterySoCPercent:
+                type: string
+              costPerHour:
+                type: string
+              effectivePrice:
+                description: Marginal price of 100 extra watts now (solar/battery
+                  aware).
+                type: string
+              error:
+                type: string
+              gridPowerWatts:
+                type: string
+              lastActions:
+                description: 'Decisions in the last run (in dry run: what would have
+                  happened).'
+                items:
+                  description: PlannedAction is a decision from the last run.
+                  properties:
+                    machine:
+                      type: string
+                    reason:
+                      type: string
+                    target:
+                      description: Target is what the planner (or an override) wants.
+                      enum:
+                      - "On"
+                      - "Off"
+                      type: string
+                  required:
+                  - machine
+                  - reason
+                  - target
+                  type: object
+                type: array
+              lastRunTime:
+                format: date-time
+                type: string
+              machinesWatts:
+                type: string
+              nodesOff:
+                format: int32
+                type: integer
+              nodesOn:
+                format: int32
+                type: integer
+              pendingPods:
+                format: int32
+                type: integer
+              price:
+                description: Import price now, per kWh.
+                type: string
+              savings:
+                description: Running totals of what powering machines off has saved.
+                properties:
+                  cost:
+                    description: In the policy's currency, at the price at the time.
+                    type: string
+                  energyKWh:
+                    type: string
+                  failedBoots:
+                    format: int64
+                    type: integer
+                  installID:
+                    description: |-
+                      Random, anonymous identifier for telemetry reports. Delete it to get a
+                      new one.
+                    type: string
+                  lastReportTime:
+                    format: date-time
+                    type: string
+                  machineHoursOff:
+                    type: string
+                  reports:
+                    format: int64
+                    type: integer
+                  since:
+                    format: date-time
+                    type: string
+                  wakes:
+                    format: int64
+                    type: integer
+                type: object
+              suggestions:
+                description: |-
+                  What would happen to worker nodes that have no Machine yet, if they had
+                  one: which could sleep (or should wake). Report-only.
+                items:
+                  description: PlannedAction is a decision from the last run.
+                  properties:
+                    machine:
+                      type: string
+                    reason:
+                      type: string
+                    target:
+                      description: Target is what the planner (or an override) wants.
+                      enum:
+                      - "On"
+                      - "Off"
+                      type: string
+                  required:
+                  - machine
+                  - reason
+                  - target
+                  type: object
+                type: array
+              unsatisfiablePods:
+                description: Pending pods no machine can run.
+                items:
+                  type: string
+                type: array
+              warnings:
+                description: Problems reading energy data.
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

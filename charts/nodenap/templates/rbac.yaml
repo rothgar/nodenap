@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "pa.name" . }}
+  labels: {{- include "pa.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "pa.name" . }}
+  labels: {{- include "pa.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list, watch, update, patch]
+  - apiGroups: [""]
+    resources: [pods]
+    # delete: force-remove pods stranded on a machine the autoscaler powered off
+    verbs: [get, list, watch, delete]
+  - apiGroups: [""]
+    resources: [pods/eviction]
+    verbs: [create]
+  - apiGroups: [events.k8s.io]
+    resources: [events]
+    verbs: [create, patch]
+  - apiGroups: [power.nodenap.rothgar.github.io]
+    resources: [machines, powerpolicies]
+    verbs: [get, list, watch]
+  - apiGroups: [power.nodenap.rothgar.github.io]
+    resources: [machines/status, powerpolicies/status]
+    verbs: [get, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "pa.name" . }}
+  labels: {{- include "pa.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "pa.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "pa.name" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# Secrets (driver credentials, talosconfig) and the leader lease live in the
+# release namespace only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "pa.name" . }}
+  labels: {{- include "pa.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "pa.name" . }}
+  labels: {{- include "pa.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "pa.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "pa.name" . }}
+    namespace: {{ .Release.Namespace }}

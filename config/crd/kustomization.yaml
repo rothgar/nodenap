@@ -1,0 +1,3 @@
+resources:
+  - bases/power.nodenap.rothgar.github.io_machines.yaml
+  - bases/power.nodenap.rothgar.github.io_powerpolicies.yaml

@@ -1,0 +1,66 @@
+# The smallest useful setup: a flat electricity price, two small PCs that
+# wake with Wake-on-LAN and shut down cleanly over SSH (k3s on Ubuntu) or the
+# Talos API. No smart plugs, no power sensors: the scaler estimates watts
+# from each machine's profile.
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: PowerPolicy
+metadata:
+  name: default
+spec:
+  dryRun: true              # watch decisions first; set false to act
+  minNodesOn: 1
+  energy:
+    currency: USD
+    tariff:
+      defaultPrice: "0.16"  # all-in price per kWh from your bill
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: nuc-2               # Kubernetes node name
+spec:
+  powerOn:
+    - wakeOnLAN:
+        mac: "aa:bb:cc:00:00:02"
+  shutdown:
+    ssh:
+      user: scaler
+      command: sudo systemctl poweroff
+      credentialsSecretRef: {name: ssh-shutdown}
+  profile:
+    idleWatts: "9"
+    maxWatts: "45"
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: talos-worker-1
+spec:
+  powerOn:
+    - wakeOnLAN:
+        mac: "aa:bb:cc:00:00:03"
+        broadcast: 192.168.1.255   # directed broadcast if the scaler is on another subnet
+  shutdown:
+    talos:
+      talosconfigSecretRef: {name: talosconfig}
+  profile:
+    idleWatts: "14"
+    maxWatts: "65"
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: ssh-shutdown, namespace: nodenap}
+stringData:
+  privateKey: |
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    ...
+    -----END OPENSSH PRIVATE KEY-----
+  knownHosts: |
+    192.168.1.12 ssh-ed25519 AAAA...
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: talosconfig, namespace: nodenap}
+stringData:
+  talosconfig: |
+    # talosctl config new --roles os:operator ./talosconfig

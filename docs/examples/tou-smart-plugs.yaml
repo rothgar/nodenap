@@ -1,0 +1,85 @@
+# Time-of-use pricing with seasons, and machines on smart plugs. The plug
+# is the power-on switch (set BIOS "Restore on AC power loss" to "Power On"),
+# cuts power after a clean shutdown (0 W standby) and measures wall power.
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: PowerPolicy
+metadata:
+  name: default
+spec:
+  dryRun: true
+  minNodesOn: 2
+  scaleDown:
+    unneededTime: 20m
+    minSavingsPerHour: "0.005"   # don't bother for less than half a cent an hour
+  energy:
+    timeZone: America/Los_Angeles
+    currency: USD
+    # First matching window wins. All-in prices: see docs/power-costs.md.
+    tariff:
+      defaultPrice: "0.39"        # winter off-peak
+      windows:
+        # Summer (June-September)
+        - {months: [6, 7, 8, 9], days: [Mon, Tue, Wed, Thu, Fri], start: "17:00", end: "20:00", price: "0.75"}
+        - {months: [6, 7, 8, 9], start: "17:00", end: "20:00", price: "0.55"}   # weekends
+        - {months: [6, 7, 8, 9], start: "00:00", end: "00:00", price: "0.35"}   # rest of the day
+        # Winter (October-May)
+        - {start: "17:00", end: "20:00", price: "0.57"}
+        - {start: "08:00", end: "17:00", price: "0.33"}
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: gpu-box
+spec:
+  powerOn:
+    - http:   # Shelly Gen2+ (Plus/Pro) plug
+        method: GET
+        url: http://192.168.1.50/rpc/Switch.Set?id=0&on=true
+        auth: {type: digest, secretRef: {name: shelly}}
+  shutdown:
+    talos:
+      talosconfigSecretRef: {name: talosconfig}
+  powerCut:
+    http:
+      method: GET
+      url: http://192.168.1.50/rpc/Switch.Set?id=0&on=false
+      auth: {type: digest, secretRef: {name: shelly}}
+  powerCutDelay: 30s
+  sensor:
+    http:
+      url: http://192.168.1.50/rpc/Switch.GetStatus?id=0
+      field: apower
+      auth: {type: digest, secretRef: {name: shelly}}
+  bootTimeout: 6m       # slow boot: firmware + Talos takes ~4 min
+  profile:
+    idleWatts: "56"
+    maxWatts: "240"
+    offWatts: "0"
+    bootTime: 4m15s
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: old-desktop
+spec:
+  powerOn:
+    - http:   # Shelly Gen1 plug (no password)
+        method: GET
+        url: http://192.168.1.51/relay/0?turn=on
+  shutdown:
+    ssh:
+      credentialsSecretRef: {name: ssh-shutdown}
+  powerCut:
+    http:
+      method: GET
+      url: http://192.168.1.51/relay/0?turn=off
+  sensor:
+    http:
+      url: http://192.168.1.51/status
+      field: meters.0.power
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: shelly, namespace: nodenap}
+stringData:
+  password: change-me   # username defaults to "admin"

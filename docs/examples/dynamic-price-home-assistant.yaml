@@ -1,0 +1,79 @@
+# Dynamic (hourly or half-hourly) prices from a Home Assistant integration
+# such as Tibber, Nord Pool, Octopus Energy, Amber or ENTSO-E, with a static
+# tariff as the fallback. Machines are on Tasmota plugs and a Home Assistant
+# switch (e.g. a TP-Link/Kasa plug added to Home Assistant).
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: PowerPolicy
+metadata:
+  name: default
+spec:
+  dryRun: true
+  integrations:
+    homeAssistantURL: http://homeassistant.home:8123
+    homeAssistantTokenSecretRef: {name: home-assistant}
+  energy:
+    timeZone: Europe/Amsterdam
+    currency: EUR
+    price:
+      homeAssistant:
+        entity: sensor.electricity_price   # your integration's "current price" sensor
+    tariff:
+      defaultPrice: "0.28"                  # used if Home Assistant is unreachable
+    exportPrice: "0.07"
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: tasmota-node
+spec:
+  powerOn:
+    - http:
+        method: GET
+        url: http://192.168.1.60/cm?cmnd=Power%20On
+  shutdown:
+    ssh:
+      credentialsSecretRef: {name: ssh-shutdown}
+  powerCut:
+    http:
+      method: GET
+      url: http://192.168.1.60/cm?cmnd=Power%20Off
+  sensor:
+    http:
+      url: http://192.168.1.60/cm?cmnd=Status%208
+      field: StatusSNS.ENERGY.Power
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: kasa-node
+spec:
+  powerOn:
+    - http:
+        url: http://homeassistant.home:8123/api/services/switch/turn_on
+        body: '{"entity_id": "switch.kasa_node"}'
+        headersSecretRef: {name: home-assistant-headers}
+  shutdown:
+    ssh:
+      credentialsSecretRef: {name: ssh-shutdown}
+  powerCut:
+    http:
+      url: http://homeassistant.home:8123/api/services/switch/turn_off
+      body: '{"entity_id": "switch.kasa_node"}'
+      headersSecretRef: {name: home-assistant-headers}
+  sensor:
+    http:
+      url: http://homeassistant.home:8123/api/states/sensor.kasa_node_current_consumption
+      field: state
+      headersSecretRef: {name: home-assistant-headers}
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: home-assistant, namespace: nodenap}
+stringData:
+  token: <long-lived access token>
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: home-assistant-headers, namespace: nodenap}
+stringData:
+  Authorization: Bearer <long-lived access token>

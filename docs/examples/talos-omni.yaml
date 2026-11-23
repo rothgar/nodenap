@@ -1,0 +1,44 @@
+# Talos clusters managed by Sidero Omni: Omni shuts the machine down (no
+# talosconfig needed), Wake-on-LAN brings it back. Power is estimated from
+# Prometheus: Kepler CPU power + GPU power + a fixed allowance for the rest
+# of the board (Kepler alone only measures the CPU package).
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: PowerPolicy
+metadata:
+  name: default
+spec:
+  dryRun: true
+  integrations:
+    prometheusURL: http://prometheus-operated.monitoring:9090
+  ignorePods:
+    # Hardware helpers that only matter while their machine is up.
+    - namespace: gpu-operator
+      selector: {matchLabels: {app: device-manager}}
+  energy:
+    tariff:
+      defaultPrice: "0.30"
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: gaming-pc
+spec:
+  powerOn:
+    - wakeOnLAN: {mac: "aa:bb:cc:00:00:41"}
+  shutdown:
+    omni:
+      credentialsSecretRef: {name: omni}
+  sensor:
+    prometheus:
+      query: >-
+        sum(kepler_node_cpu_watts{node_name="{{ .NodeName }}",zone="package"})
+        + max(nvidia_smi_power_draw_watts{instance="{{ .NodeName }}"})
+        + 30
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: omni, namespace: nodenap}
+stringData:
+  endpoint: https://example.omni.siderolabs.io
+  # omnictl serviceaccount create nodenap --use-user-role=false --role Operator
+  serviceAccountKey: <key printed by the command above>

@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pa.name" . }}
+  labels: {{- include "pa.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {{- include "pa.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "pa.labels" . | nindent 8 }}
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      serviceAccountName: {{ include "pa.name" . }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      {{- if .Values.hostNetwork }}
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: manager
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --leader-elect
+            - --metrics-bind-address=:{{ .Values.metricsPort }}
+            - --health-probe-bind-address=:{{ .Values.probePort }}
+            - --zap-log-level={{ .Values.logLevel }}
+          env:
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metricsPort }}
+          livenessProbe:
+            httpGet: {path: /healthz, port: {{ .Values.probePort }}}
+          readinessProbe:
+            httpGet: {path: /readyz, port: {{ .Values.probePort }}}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pa.name" . }}-metrics
+  labels: {{- include "pa.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "pa.labels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: {{ .Values.metricsPort }}
+      targetPort: metrics
+{{- if .Values.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "pa.name" . }}
+  labels: {{- include "pa.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{- include "pa.labels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+{{- end }}

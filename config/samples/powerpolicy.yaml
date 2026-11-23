@@ -1,0 +1,10 @@
+# Start here: dry run, a flat price. See docs/examples/ for complete setups.
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: PowerPolicy
+metadata:
+  name: default
+spec:
+  dryRun: true
+  energy:
+    tariff:
+      defaultPrice: "0.20"   # your all-in price per kWh (docs/power-costs.md)

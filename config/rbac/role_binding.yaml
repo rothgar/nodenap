@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nodenap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nodenap
+subjects:
+  - kind: ServiceAccount
+    name: nodenap
+    namespace: nodenap
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nodenap
+  namespace: nodenap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nodenap
+subjects:
+  - kind: ServiceAccount
+    name: nodenap
+    namespace: nodenap

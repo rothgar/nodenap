@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nodenap
+description: Powers Kubernetes nodes on and off to minimise electricity cost.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

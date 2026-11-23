@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodenap
+  namespace: nodenap
+  labels:
+    app.kubernetes.io/name: nodenap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nodenap
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nodenap
+      annotations:
+        # The controller must never evict itself while draining a node.
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      serviceAccountName: nodenap
+      # Wake-on-LAN broadcasts must reach the machines' L2 segment.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      # Run on an always-on node. The controller also refuses to power off
+      # the node it runs on.
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: ghcr.io/rothgar/nodenap:dev
+          args:
+            - --leader-elect
+            - --metrics-bind-address=:18080
+            - --health-probe-bind-address=:18081
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          ports:
+            - name: metrics
+              containerPort: 18080
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 18081
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 18081
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

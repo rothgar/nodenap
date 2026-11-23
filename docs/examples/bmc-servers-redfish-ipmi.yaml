@@ -1,0 +1,60 @@
+# Rack servers with a BMC. The BMC does everything: power on, graceful ACPI
+# shutdown, hard power off and wall-power readings.
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: PowerPolicy
+metadata:
+  name: default
+spec:
+  dryRun: true
+  energy:
+    tariff:
+      defaultPrice: "0.21"
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: r740   # Dell iDRAC (HPE iLO, Lenovo XClarity, OpenBMC: same fields)
+spec:
+  powerOn:
+    - redfish: &idrac
+        address: https://192.168.10.21
+        credentialsSecretRef: {name: idrac}
+        insecureSkipTLSVerify: true
+  shutdown:
+    redfish: *idrac
+  powerCut:
+    redfish: *idrac
+  sensor:
+    redfish: *idrac
+  bootTimeout: 10m   # server POST is slow
+  profile:
+    idleWatts: "120"
+    maxWatts: "500"
+    offWatts: "12"   # BMC standby
+---
+apiVersion: power.nodenap.rothgar.github.io/v1alpha1
+kind: Machine
+metadata:
+  name: supermicro-1
+spec:
+  powerOn:
+    - ipmi: &bmc
+        address: 192.168.10.31
+        credentialsSecretRef: {name: supermicro-bmc}
+    - wakeOnLAN: {mac: "aa:bb:cc:00:00:31"}   # fallback if the BMC is unreachable
+  shutdown:
+    ipmi: *bmc   # ACPI soft-off
+  powerCut:
+    ipmi: *bmc
+  sensor:
+    ipmi: *bmc   # DCMI power reading
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: idrac, namespace: nodenap}
+stringData: {username: scaler, password: change-me}
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: supermicro-bmc, namespace: nodenap}
+stringData: {username: scaler, password: change-me}
