@@ -14,6 +14,10 @@ manifests: ## Generate CRDs and RBAC.
 		output:crd:artifacts:config=config/crd/bases output:rbac:artifacts:config=config/rbac
 	cp config/crd/bases/*.yaml charts/nodenap/crds/
 
+.PHONY: dashboard
+dashboard: ## Regenerate the Grafana dashboard JSON.
+	python3 hack/gen-dashboard.py
+
 .PHONY: fmt
 fmt:
 	go fmt ./...

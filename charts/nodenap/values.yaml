@@ -47,3 +47,16 @@ resources:
 
 serviceMonitor:
   enabled: false
+  # Extra labels, e.g. {release: kube-prometheus-stack} when Prometheus only
+  # selects ServiceMonitors with that label.
+  labels: {}
+
+# Grafana dashboard (power states, draw, energy and money saved) as a
+# ConfigMap for the Grafana sidecar. Also in charts/nodenap/dashboards/ to
+# import by hand.
+grafanaDashboard:
+  enabled: false
+  labels:
+    grafana_dashboard: "1"
+  annotations: {}   # e.g. grafana_folder: Power
+  namespace: ""     # default: the release namespace

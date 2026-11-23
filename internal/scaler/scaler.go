@@ -438,7 +438,10 @@ func (s *Scaler) act(ctx context.Context, spec v1alpha1.PowerPolicySpec, machine
 			if st.UnneededSince == nil || !st.UnneededSince.Time.Equal(since) {
 				st.UnneededSince = &metav1.Time{Time: since}
 			}
-		} else {
+		} else if !(spec.DryRun && planned && a.Target == v1alpha1.TargetOff) {
+			// A dry-run decision never takes effect, so the machine stays
+			// unneeded: keep its timer, or the next loop restarts it and the
+			// scale-down slot goes to another machine.
 			st.UnneededSince = nil
 		}
 		if w := measured[name]; w != nil {

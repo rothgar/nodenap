@@ -44,6 +44,35 @@ the PowerPolicy resets them. Metrics:
 | `nodenap_failed_boots_total` | wakes where every powerOn driver timed out |
 | `nodenap_wake_duration_seconds` | histogram, power-on to Node Ready |
 
+Prometheus counters restart at zero when the controller restarts;
+`increase()` and `rate()` handle that, and the PowerPolicy status keeps the
+lifetime totals.
+
+### Grafana dashboard
+
+The chart ships a dashboard: savings for the selected time range (money,
+kWh, machine-hours off, wakes, median wake time), current draw, cost per hour
+and price, a power-state timeline per machine, power by machine, savings by
+machine, price over time, and grid/battery when configured. In dry run, the
+"Would act" panel counts the decisions nodenap would have made.
+
+With kube-prometheus-stack (or any Grafana running the dashboard sidecar):
+
+```yaml
+# Helm values
+serviceMonitor:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack   # whatever your Prometheus selects on
+grafanaDashboard:
+  enabled: true                      # ConfigMap labelled grafana_dashboard: "1"
+```
+
+Without the sidecar, import
+[`charts/nodenap/dashboards/nodenap.json`](../charts/nodenap/dashboards/nodenap.json)
+in Grafana (Dashboards → New → Import). Money panels use USD formatting;
+change the unit to your currency in the panel settings.
+
 ## Anonymous telemetry (opt-in)
 
 If you'd like to add your install to a public "energy saved by nodenap"

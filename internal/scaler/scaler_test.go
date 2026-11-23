@@ -288,6 +288,26 @@ func TestDryRunTouchesNothing(t *testing.T) {
 	}
 }
 
+// A dry-run decision must be repeated every loop, not alternate with the
+// next-best machine while the first one's unneeded timer restarts.
+func TestDryRunDecisionIsStable(t *testing.T) {
+	h := newHarness(t, policy(true), node("cp", true, "4", "8Gi", nil),
+		node("big", true, "16", "64Gi", nil), node("small", true, "8", "16Gi", nil))
+	for name, w := range map[string]string{"big": "500", "small": "40"} {
+		_ = h.c.Create(context.Background(), h.machine(name, func(m *v1alpha1.Machine) { m.Spec.Profile.IdleWatts = w }))
+	}
+	h.run()
+	for i := range 4 {
+		h.now = h.now.Add(16 * time.Minute)
+		h.run()
+		var p v1alpha1.PowerPolicy
+		h.get(&p, "default")
+		if len(p.Status.LastActions) != 1 || p.Status.LastActions[0].Machine != "big" {
+			t.Fatalf("loop %d: want big powered off every time, got %+v", i, p.Status.LastActions)
+		}
+	}
+}
+
 func TestNoPolicyObservesOnly(t *testing.T) {
 	h := newHarness(t, node("b", false, "4", "8Gi", nil))
 	_ = h.c.Create(context.Background(), h.machine("b"))

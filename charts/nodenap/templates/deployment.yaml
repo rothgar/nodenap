@@ -74,7 +74,11 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ include "pa.name" . }}
-  labels: {{- include "pa.labels" . | nindent 4 }}
+  labels:
+    {{- include "pa.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   selector:
     matchLabels: {{- include "pa.labels" . | nindent 6 }}
