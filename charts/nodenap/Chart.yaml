@@ -2,8 +2,8 @@ apiVersion: v2
 name: nodenap
 description: Powers Kubernetes nodes on and off to minimise electricity cost.
 type: application
-version: 0.1.1
-appVersion: "0.1.1"
+version: 0.1.2
+appVersion: "0.1.2"
 home: https://github.com/rothgar/nodenap
 sources:
   - https://github.com/rothgar/nodenap
