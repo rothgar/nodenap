@@ -23,8 +23,15 @@ also refuses to power off the node it runs on.
 ## 1. Install
 
 ```sh
-helm install nodenap oci://ghcr.io/rothgar/charts/nodenap -n nodenap --create-namespace
+kubectl create namespace nodenap
+kubectl label namespace nodenap pod-security.kubernetes.io/enforce=privileged
+helm install nodenap oci://ghcr.io/rothgar/charts/nodenap -n nodenap
 ```
+
+The label lets the controller use `hostNetwork` (for Wake-on-LAN broadcasts)
+on clusters that enforce Pod Security, such as Talos. Without it the
+Deployment never gets a pod. Don't use Wake-on-LAN? Skip the label and add
+`--set hostNetwork=false --create-namespace`.
 
 The chart installs the CRDs, the controller and a default PowerPolicy in
 **dry run**. Useful values (`--set key=value`):

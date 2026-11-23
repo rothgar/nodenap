@@ -33,8 +33,15 @@ Powered-off machines **stay in the cluster** as Nodes. Nothing is deleted.
 ## Try it (dry run: changes nothing)
 
 ```sh
-helm install nodenap oci://ghcr.io/rothgar/charts/nodenap -n nodenap --create-namespace
+kubectl create namespace nodenap
+kubectl label namespace nodenap pod-security.kubernetes.io/enforce=privileged
+helm install nodenap oci://ghcr.io/rothgar/charts/nodenap -n nodenap
 ```
+
+The label lets the controller use `hostNetwork` (for Wake-on-LAN broadcasts)
+on clusters that enforce Pod Security, such as Talos. Without it the
+Deployment never gets a pod. Don't use Wake-on-LAN? Skip the label and add
+`--set hostNetwork=false --create-namespace`.
 
 That's all it takes to see what nodenap would do. It starts in **dry run**
 with a default PowerPolicy: it watches your cluster and, after about 15
