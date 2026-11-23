@@ -5,11 +5,11 @@ metadata:
   labels: {{- include "pa.labels" . | nindent 4 }}
 spec:
   replicas: 1
-  # With hostNetwork the old pod holds the metrics/probe host ports, so a
-  # surge pod can't schedule on the same (preferred control-plane) node and
-  # lands on a worker. Stop the old pod first. (Not type Recreate: switching an
-  # existing Deployment to it fails server-side apply on the old
-  # rollingUpdate defaults.)
+  # Don't surge: with hostNetwork two pods can't share a node's ports. A
+  # terminating pod still holds them, so with only a *preferred* affinity an
+  # upgrade can land on another node; require the node in `affinity` to pin it.
+  # (Not type Recreate: switching an existing Deployment to it fails Helm's
+  # server-side apply on the old rollingUpdate defaults.)
   strategy:
     type: RollingUpdate
     rollingUpdate:

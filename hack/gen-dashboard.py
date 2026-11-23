@@ -53,16 +53,16 @@ panel("stat", "Median wake time", 20, 1, 4, 4,
 
 # --- Now -----------------------------------------------------------------
 row("Now", 5)
-panel("stat", "Machines power", 0, 6, 4, 4, [("nodenap_machines_watts", "")],
+panel("stat", "Machines power", 0, 6, 4, 4, [("max(nodenap_machines_watts)", "")],
       fieldConfig=defaults("watt", 0, fixed="orange"), options={**stat_opts, "graphMode": "area"})
-panel("stat", "Machines cost / hour", 4, 6, 4, 4, [("nodenap_cost_per_hour", "")],
+panel("stat", "Machines cost / hour", 4, 6, 4, 4, [("max(nodenap_cost_per_hour)", "")],
       fieldConfig=defaults("currencyUSD", 3, fixed="orange"), options={**stat_opts, "graphMode": "area"})
-panel("stat", "Grid price / kWh", 8, 6, 4, 4, [("nodenap_price_per_kwh", "")],
+panel("stat", "Grid price / kWh", 8, 6, 4, 4, [("max(nodenap_price_per_kwh)", "")],
       fieldConfig=defaults("currencyUSD", 4, fixed="text"), options=stat_opts)
-panel("stat", "Effective price / kWh", 12, 6, 4, 4, [("nodenap_effective_price_per_kwh", "")],
+panel("stat", "Effective price / kWh", 12, 6, 4, 4, [("max(nodenap_effective_price_per_kwh)", "")],
       fieldConfig=defaults("currencyUSD", 4, fixed="text"), options=stat_opts,
       description="What 100 W more load would cost per kWh after solar export and battery.")
-panel("stat", "Pending pods", 16, 6, 4, 4, [("nodenap_pending_pods", "")],
+panel("stat", "Pending pods", 16, 6, 4, 4, [("max(nodenap_pending_pods)", "")],
       fieldConfig=defaults("none", 0, color="thresholds",
                            extra={"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": None}, {"color": "yellow", "value": 1}]}}),
       options=stat_opts)
@@ -78,8 +78,9 @@ states = [("Off", 1, "#808080"), ("Booting", 2, "blue"), ("On", 3, "green"),
 expr = "max by (machine) (\n" + "\n  or ".join(
     f'(nodenap_machine_state{{state="{s}",{M}}} == 1) * {v}' for s, v, _ in states) + "\n)"
 panel("state-timeline", "Power state", 0, 11, 24, 8, [(expr, "{{machine}}")],
-      fieldConfig={"defaults": {"color": {"mode": "thresholds"}, "custom": {"fillOpacity": 80, "lineWidth": 0},
-                                "thresholds": {"mode": "absolute", "steps": [{"color": "purple", "value": None}]},
+      # Fixed color, not thresholds: in thresholds mode the state timeline buckets values by threshold
+      # and ignores the per-state colors and names in the mappings below.
+      fieldConfig={"defaults": {"color": {"mode": "fixed", "fixedColor": "purple"}, "custom": {"fillOpacity": 80, "lineWidth": 0},
                                 "mappings": [{"type": "value", "options": {str(v): {"text": s, "color": c, "index": i}
                                                                            for i, (s, v, c) in enumerate(states)}}]},
                    "overrides": []},
@@ -106,7 +107,7 @@ panel("bargauge", "Hours off by machine", 18, 19, 6, 8,
 # --- Energy --------------------------------------------------------------
 row("Energy", 27)
 panel("timeseries", "Price per kWh", 0, 28, 8, 8,
-      [("nodenap_price_per_kwh", "grid price"), ("nodenap_effective_price_per_kwh", "effective (solar/battery)")],
+      [("max(nodenap_price_per_kwh)", "grid price"), ("max(nodenap_effective_price_per_kwh)", "effective (solar/battery)")],
       fieldConfig=defaults("currencyUSD", 4, color="palette-classic", extra={"custom": {**ts_custom, "drawStyle": "line", "lineInterpolation": "stepAfter"}}),
       options={"legend": {"showLegend": True, "displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}})
 panel("timeseries", "Savings over time", 8, 28, 8, 8,
@@ -114,7 +115,7 @@ panel("timeseries", "Savings over time", 8, 28, 8, 8,
       fieldConfig=defaults("currencyUSD", 3, fixed="green", extra={"custom": {**ts_custom, "drawStyle": "bars", "fillOpacity": 60}}),
       options={"legend": {"showLegend": False}, "tooltip": {"mode": "single"}})
 panel("timeseries", "Grid and battery", 16, 28, 8, 8,
-      [("nodenap_grid_power_watts", "grid (+ export)"), ("nodenap_battery_soc_percent", "battery SoC")],
+      [("max(nodenap_grid_power_watts)", "grid (+ export)"), ("max(nodenap_battery_soc_percent)", "battery SoC")],
       fieldConfig={"defaults": {"unit": "watt", "color": {"mode": "palette-classic"}, "custom": ts_custom},
                    "overrides": [{"matcher": {"id": "byName", "options": "battery SoC"},
                                   "properties": [{"id": "unit", "value": "percent"}, {"id": "min", "value": 0}, {"id": "max", "value": 100},

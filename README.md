@@ -30,6 +30,12 @@ Powered-off machines **stay in the cluster** as Nodes. Nothing is deleted.
             └──────────────────────────────────────────────────────────┘
 ```
 
+The Helm chart includes a Grafana dashboard that shows what's on, what it
+costs right now and what nodenap has saved
+([details](docs/savings-and-telemetry.md#grafana-dashboard)):
+
+![nodenap Grafana dashboard](docs/images/dashboard.png)
+
 ## Try it (dry run: changes nothing)
 
 ```sh

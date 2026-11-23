@@ -436,7 +436,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "nodenap_machines_watts",
+          "expr": "max(nodenap_machines_watts)",
           "legendFormat": "",
           "instant": true
         }
@@ -487,7 +487,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "nodenap_cost_per_hour",
+          "expr": "max(nodenap_cost_per_hour)",
           "legendFormat": "",
           "instant": true
         }
@@ -538,7 +538,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "nodenap_price_per_kwh",
+          "expr": "max(nodenap_price_per_kwh)",
           "legendFormat": "",
           "instant": true
         }
@@ -589,7 +589,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "nodenap_effective_price_per_kwh",
+          "expr": "max(nodenap_effective_price_per_kwh)",
           "legendFormat": "",
           "instant": true
         }
@@ -641,7 +641,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "nodenap_pending_pods",
+          "expr": "max(nodenap_pending_pods)",
           "legendFormat": "",
           "instant": true
         }
@@ -776,20 +776,12 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "purple"
           },
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "purple",
-                "value": null
-              }
-            ]
           },
           "mappings": [
             {
@@ -1047,7 +1039,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "nodenap_price_per_kwh",
+          "expr": "max(nodenap_price_per_kwh)",
           "legendFormat": "grid price"
         },
         {
@@ -1056,7 +1048,7 @@
             "uid": "${datasource}"
           },
           "refId": "B",
-          "expr": "nodenap_effective_price_per_kwh",
+          "expr": "max(nodenap_effective_price_per_kwh)",
           "legendFormat": "effective (solar/battery)"
         }
       ],
@@ -1162,7 +1154,7 @@
             "uid": "${datasource}"
           },
           "refId": "A",
-          "expr": "nodenap_grid_power_watts",
+          "expr": "max(nodenap_grid_power_watts)",
           "legendFormat": "grid (+ export)"
         },
         {
@@ -1171,7 +1163,7 @@
             "uid": "${datasource}"
           },
           "refId": "B",
-          "expr": "nodenap_battery_soc_percent",
+          "expr": "max(nodenap_battery_soc_percent)",
           "legendFormat": "battery SoC"
         }
       ],

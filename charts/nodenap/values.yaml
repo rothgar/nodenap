@@ -20,7 +20,9 @@ policy:
 hostNetwork: true
 
 # Prefer an always-on control-plane node, but run anywhere if there isn't
-# one. If the node it runs on is powered off, the controller evicts itself
+# one. To pin it there (upgrades can otherwise land elsewhere, since the old
+# pod's host ports block the node until it exits), use
+# requiredDuringSchedulingIgnoredDuringExecution instead. If the node it runs on is powered off, the controller evicts itself
 # last and its replacement on another node finishes the power-off.
 affinity:
   nodeAffinity:

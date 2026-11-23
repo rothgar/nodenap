@@ -45,7 +45,9 @@ The chart installs the CRDs, the controller and a default PowerPolicy in
 | `image.tag` | chart version | |
 
 The controller prefers a control-plane node and runs anywhere if there
-isn't one. It can power off the node it runs on: it drains everything else
+isn't one. With `hostNetwork`, an upgrade can land it on another node (the
+old pod holds the host ports until it exits); if you have an always-on node,
+make the `affinity` *required* to keep it there. It can power off the node it runs on: it drains everything else
 first, evicts itself last, and the replacement pod on another node picks up
 from the Machine status and finishes the power-off. With `hostNetwork`,
 Wake-on-LAN broadcasts reach your LAN; if your machines are on a different
