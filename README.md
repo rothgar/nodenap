@@ -94,3 +94,7 @@ state machine), `internal/planner` (decision logic and scheduling simulation),
 `internal/energy` (prices, solar, battery), `internal/drivers` (power
 on/off/measure), `internal/sources` (Prometheus, Home Assistant and HTTP
 readings), `cmd/nodenap`, `cmd/powerplan`.
+
+## License
+
+Apache License 2.0, see [LICENSE](LICENSE).

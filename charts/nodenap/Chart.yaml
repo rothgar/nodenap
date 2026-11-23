@@ -4,3 +4,8 @@ description: Powers Kubernetes nodes on and off to minimise electricity cost.
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+home: https://github.com/rothgar/nodenap
+sources:
+  - https://github.com/rothgar/nodenap
+annotations:
+  artifacthub.io/license: Apache-2.0
