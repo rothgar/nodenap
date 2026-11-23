@@ -20,7 +20,8 @@ policy:
 hostNetwork: true
 
 # Prefer an always-on control-plane node, but run anywhere if there isn't
-# one (nodenap never powers off the node it runs on).
+# one. If the node it runs on is powered off, the controller evicts itself
+# last and its replacement on another node finishes the power-off.
 affinity:
   nodeAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:

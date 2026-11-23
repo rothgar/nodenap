@@ -44,12 +44,11 @@ func main() {
 }
 
 func run() error {
-	var configFile, pendingFile, promService, offList, selfNode string
+	var configFile, pendingFile, promService, offList string
 	flag.StringVar(&configFile, "f", "", "YAML with a PowerPolicy and Machines (required)")
 	flag.StringVar(&pendingFile, "pending", "", "YAML with hypothetical Pods to treat as unschedulable")
 	flag.StringVar(&promService, "prometheus-service", "", "reach Prometheus through the API server proxy, e.g. monitoring/prometheus-operated:9090")
 	flag.StringVar(&offList, "assume-off", "", "comma-separated nodes to simulate as powered off")
-	flag.StringVar(&selfNode, "self-node", "", "node nodenap would run on")
 	flag.Parse()
 	if configFile == "" {
 		return errors.New("-f is required")
@@ -157,7 +156,7 @@ func run() error {
 
 	sim := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).
 		WithStatusSubresource(&v1alpha1.Machine{}, &v1alpha1.PowerPolicy{}).Build()
-	s := &scaler.Scaler{Client: sim, Namespace: simNamespace, SelfNode: selfNode}
+	s := &scaler.Scaler{Client: sim, Namespace: simNamespace}
 	if promService != "" {
 		httpClient, err := rest.HTTPClientFor(cfg)
 		if err != nil {

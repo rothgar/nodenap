@@ -16,16 +16,13 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: nodenap
-      annotations:
-        # The controller must never evict itself while draining a node.
-        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       serviceAccountName: nodenap
       # Wake-on-LAN broadcasts must reach the machines' L2 segment.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      # Run on an always-on node. The controller also refuses to power off
-      # the node it runs on.
+      # Run on an always-on node. If its node is powered off anyway, the
+      # controller evicts itself last and a replacement finishes the job.
       nodeSelector:
         node-role.kubernetes.io/control-plane: ""
       tolerations:
@@ -52,6 +49,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           ports:
             - name: metrics
               containerPort: 18080

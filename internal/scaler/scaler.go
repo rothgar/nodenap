@@ -58,7 +58,10 @@ type Scaler struct {
 	SecretReader client.Reader
 	Recorder     recorder.EventRecorder
 	Namespace    string // the scaler's namespace (default for secret refs)
-	SelfNode     string // never powered off
+	// The controller's own pod ("namespace/name"). When its node is drained
+	// it is evicted last; the replacement on another node resumes from the
+	// Machine status and finishes the power-off.
+	SelfPod string
 	// Optional hooks (tests, powerplan).
 	NewPrometheus func(url string) *sources.Prometheus
 	NewOmni       func(endpoint, key string) (drivers.OmniAPI, error)
@@ -328,8 +331,6 @@ func (s *Scaler) plannerInput(ctx context.Context, spec v1alpha1.PowerPolicySpec
 			switch {
 			case isControlPlane(node):
 				pn.Protected, pn.ProtectedReason = true, "control-plane node"
-			case name == s.SelfNode:
-				pn.Protected, pn.ProtectedReason = true, "runs nodenap"
 			case never.Matches(labels.Set(node.Labels)):
 				pn.Protected, pn.ProtectedReason = true, "matches neverPowerOffSelector"
 			}

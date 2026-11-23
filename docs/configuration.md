@@ -16,7 +16,7 @@ use Go syntax (`30s`, `15m`, `4m15s`).
 | `dryRun` | `false` | Decide and report, but never act. **Start with `true`.** |
 | `interval` | `15s` | How often the loop runs. |
 | `nodeSelector` | all nodes | Nodes counted as capacity. |
-| `neverPowerOffSelector` | none | Nodes never powered off. Control-plane nodes and the scaler's own node are always protected. |
+| `neverPowerOffSelector` | none | Nodes never powered off. Control-plane nodes are always protected. |
 | `ignorePods[]` | none | `{namespace, selector}` pods that never wake a machine and never keep one on. The pod annotation `nodenap.rothgar.github.io/ignore: "true"` does the same. |
 | `minNodesOn` | `0` | Minimum Ready nodes kept on. |
 | `headroom.cpu` / `.memory` | none | Spare schedulable capacity (summed over Ready nodes) to keep on. |

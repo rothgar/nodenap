@@ -18,13 +18,14 @@ import (
 )
 
 func main() {
-	var metricsAddr, probeAddr, namespace, selfNode string
+	var metricsAddr, probeAddr, namespace, selfNode, podName string
 	var leaderElect bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":18080", "Prometheus metrics address.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":18081", "Health probe address.")
 	flag.BoolVar(&leaderElect, "leader-elect", true, "Run one active replica.")
 	flag.StringVar(&namespace, "namespace", os.Getenv("POD_NAMESPACE"), "Namespace for Secrets and the leader lease.")
-	flag.StringVar(&selfNode, "node-name", os.Getenv("NODE_NAME"), "Node this runs on; never powered off.")
+	flag.StringVar(&selfNode, "node-name", os.Getenv("NODE_NAME"), "Node this runs on (logged).")
+	flag.StringVar(&podName, "pod-name", os.Getenv("POD_NAME"), "This pod's name; evicted last when its node is drained.")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -55,7 +56,7 @@ func main() {
 		SecretReader: mgr.GetAPIReader(), // uncached: no cluster-wide Secret watch
 		Recorder:     mgr.GetEventRecorder("nodenap"),
 		Namespace:    namespace,
-		SelfNode:     selfNode,
+		SelfPod:      namespace + "/" + podName,
 	}); err != nil {
 		log.Error(err, "adding scaler")
 		os.Exit(1)

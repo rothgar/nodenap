@@ -308,6 +308,38 @@ func TestDryRunDecisionIsStable(t *testing.T) {
 	}
 }
 
+// The controller can power off its own node: it evicts every other pod
+// first, then itself, and a replacement elsewhere finishes the job.
+func TestPowersOffItsOwnNode(t *testing.T) {
+	ctrlPod := pod("nodenap-abc", "gpu", "ReplicaSet")
+	h := newHarness(t, policy(false), node("cp", true, "4", "8Gi", map[string]string{"node-role.kubernetes.io/control-plane": ""}),
+		node("gpu", true, "20", "120Gi", nil), pod("web", "gpu", "ReplicaSet"), ctrlPod)
+	h.s.SelfPod = "default/nodenap-abc"
+	if err := h.c.Create(context.Background(), h.machine("gpu")); err != nil {
+		t.Fatal(err)
+	}
+	h.run()
+	h.override("gpu", "off")
+	h.run() // target Off → Draining
+	h.state("gpu", v1alpha1.PowerDraining)
+	h.run() // evicts web, keeps itself
+	if podExists(h, "web") || !podExists(h, "nodenap-abc") {
+		t.Fatalf("want web evicted first and the controller kept: web=%v self=%v", podExists(h, "web"), podExists(h, "nodenap-abc"))
+	}
+	h.run() // only itself left → evicts itself
+	if podExists(h, "nodenap-abc") {
+		t.Fatal("controller should evict itself once it is the last pod")
+	}
+
+	// The replacement runs elsewhere with fresh memory and resumes from status.
+	h.s = &Scaler{Client: h.c, Namespace: "nodenap", SelfPod: "default/nodenap-xyz", Now: func() time.Time { return h.now }}
+	h.run()
+	h.state("gpu", v1alpha1.PowerShuttingDown)
+	if !strings.Contains(h.gotCalls(), "gpu/shutdown") {
+		t.Fatalf("replacement should send the shutdown, calls: %s", h.gotCalls())
+	}
+}
+
 func TestNoPolicyObservesOnly(t *testing.T) {
 	h := newHarness(t, node("b", false, "4", "8Gi", nil))
 	_ = h.c.Create(context.Background(), h.machine("b"))

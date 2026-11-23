@@ -70,7 +70,7 @@ your live cluster, runs the real decision loop on an in-memory copy, and
 prints what would happen:
 
 ```sh
-go run github.com/rothgar/nodenap/cmd/powerplan@latest -f my-config.yaml --self-node <control-plane-node>
+go run github.com/rothgar/nodenap/cmd/powerplan@latest -f my-config.yaml
 ```
 
 ## Documentation

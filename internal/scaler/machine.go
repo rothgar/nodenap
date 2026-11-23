@@ -254,12 +254,16 @@ func (x *machineStep) drain(ctx context.Context) error {
 	if err := setTaint(ctx, x.s.Client, x.node, corev1.TaintEffectNoSchedule); err != nil {
 		return err
 	}
+	movable := planner.MovablePods(x.pods)
 	remaining := 0
 	var blocked []string
-	for _, p := range planner.MovablePods(x.pods) {
+	for _, p := range movable {
 		remaining++
 		if p.DeletionTimestamp != nil {
 			continue
+		}
+		if x.s.SelfPod == p.Namespace+"/"+p.Name && len(movable) > 1 {
+			continue // evict ourselves last, once everything else has left
 		}
 		ev := &policyv1.Eviction{ObjectMeta: metav1.ObjectMeta{Name: p.Name, Namespace: p.Namespace}}
 		if err := x.s.Client.SubResource("eviction").Create(ctx, p, ev); err != nil {

@@ -17,8 +17,7 @@ You need, for every machine you want powered off:
    [power sensors](power-sensors.md).
 4. **Your electricity price**. See [finding your power costs](power-costs.md).
 
-Never power off your control plane. nodenap refuses to anyway, and
-also refuses to power off the node it runs on.
+Never power off your control plane. nodenap refuses to anyway.
 
 ## 1. Install
 
@@ -45,8 +44,10 @@ The chart installs the CRDs, the controller and a default PowerPolicy in
 | `hostNetwork` | `true` | needed for Wake-on-LAN broadcasts |
 | `image.tag` | chart version | |
 
-The controller prefers a control-plane node, runs anywhere if there isn't
-one, and never powers off the node it runs on. With `hostNetwork`,
+The controller prefers a control-plane node and runs anywhere if there
+isn't one. It can power off the node it runs on: it drains everything else
+first, evicts itself last, and the replacement pod on another node picks up
+from the Machine status and finishes the power-off. With `hostNetwork`,
 Wake-on-LAN broadcasts reach your LAN; if your machines are on a different
 subnet, use a directed broadcast address (e.g. `192.168.1.255`) in the
 `wakeOnLAN` driver.
