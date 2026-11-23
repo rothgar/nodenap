@@ -5,6 +5,11 @@ metadata:
   labels: {{- include "pa.labels" . | nindent 4 }}
 spec:
   replicas: 1
+  # With hostNetwork the old pod holds the metrics/probe host ports, so a
+  # rolling update pushes the new pod off the (preferred) control-plane node
+  # onto a worker, which nodenap then can't power off. Stop the old pod first.
+  strategy:
+    type: Recreate
   selector:
     matchLabels: {{- include "pa.labels" . | nindent 6 }}
   template:

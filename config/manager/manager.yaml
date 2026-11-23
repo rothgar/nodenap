@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/name: nodenap
 spec:
   replicas: 1
+  strategy:
+    type: Recreate   # hostNetwork: free the host ports before the new pod schedules
   selector:
     matchLabels:
       app.kubernetes.io/name: nodenap
