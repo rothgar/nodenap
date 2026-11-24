@@ -125,6 +125,18 @@ type MachineStatus struct {
 	MeasuredWatts string `json:"measuredWatts,omitempty"`
 	// +optional
 	MeasuredAt *metav1.Time `json:"measuredAt,omitempty"`
+	// Set when the machine was woken because it ran older OS or kubelet
+	// versions than the running nodes: an upgrade it missed while off.
+	// +optional
+	UpgradeWake *UpgradeWake `json:"upgradeWake,omitempty"`
+}
+
+// UpgradeWake records a wake to catch up with an upgrade.
+type UpgradeWake struct {
+	// The versions the node reported when it was woken. It isn't woken
+	// again while it reports the same ones.
+	From string `json:"from"`
+	At   metav1.Time `json:"at"`
 }
 
 // Machine is a physical machine whose power nodenap controls.

@@ -53,6 +53,20 @@ member, so there's nothing to configure:
 
 A LeaderWorkerSet with `size: 1` isn't treated as a group.
 
+### Upgrades
+
+A machine that's off misses OS and Kubernetes upgrades rolled out to the
+others (Omni, `talosctl upgrade`, k3s's system-upgrade-controller…). Its Node
+object keeps the versions it last reported (`osImage` and `kubeletVersion`),
+so when a Ready node runs a newer OS (same OS name) or kubelet, the machine
+is woken to catch up (`upgrade: Talos v1.14.5 → v1.15.0`). It stays on until
+its node reports the new version, for up to an hour, then is powered off as
+usual once unneeded.
+
+A machine is woken at most once for the same old versions, recorded in
+`status.upgradeWake`, so one deliberately kept on an older version doesn't
+wake over and over.
+
 ## Powering machines off
 
 A machine is **unneeded** when all of these hold:
@@ -63,7 +77,8 @@ A machine is **unneeded** when all of these hold:
   other running nodes;
 - no pod is bare (no controller), part of a [pod group](#pod-groups), or
   annotated `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`;
-- powering it off saves at least `scaleDown.minSavingsPerHour`.
+- powering it off saves at least `scaleDown.minSavingsPerHour`;
+- it isn't catching up with an [upgrade](#upgrades).
 
 After `unneededTime`, the **least efficient machine (most watts per core)**
 is powered off first, within `maxConcurrent`, `minNodesOn` and `headroom`. Nothing

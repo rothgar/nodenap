@@ -1112,6 +1112,23 @@ spec:
                 description: When the planner first saw the machine as unneeded.
                 format: date-time
                 type: string
+              upgradeWake:
+                description: |-
+                  Set when the machine was woken because it ran older OS or kubelet
+                  versions than the running nodes: an upgrade it missed while off.
+                properties:
+                  at:
+                    format: date-time
+                    type: string
+                  from:
+                    description: |-
+                      The versions the node reported when it was woken. It isn't woken
+                      again while it reports the same ones.
+                    type: string
+                required:
+                - at
+                - from
+                type: object
               wouldTarget:
                 description: 'Dry run only: the target nodenap would set now (empty:
                   no change).'

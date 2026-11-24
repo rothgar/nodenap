@@ -172,6 +172,10 @@ func (p *run) scaleDown() {
 		if n.Protected || !n.CanPowerOff || !n.CanPowerOn || n.Override == v1alpha1.TargetOn {
 			continue
 		}
+		if r := p.upgradeHold(n); r != "" {
+			p.note("%s: %s", n.Name, r)
+			continue
+		}
 		move := p.mustMove(n)
 		if u := utilization(n, move); u >= s.UtilizationThreshold {
 			continue

@@ -74,6 +74,10 @@ type Node struct {
 	UnneededSince *time.Time
 	// Override from the nodenap.rothgar.github.io/override annotation.
 	Override v1alpha1.Target
+	// UpgradeFrom/UpgradeAt: the versions the node reported when it was last
+	// woken to catch up with an upgrade, and when.
+	UpgradeFrom string
+	UpgradeAt   time.Time
 }
 
 // Settings are the PowerPolicy knobs with defaults applied.
@@ -111,6 +115,9 @@ type Action struct {
 	Node   string
 	Target v1alpha1.Target
 	Reason string
+	// UpgradeFrom is set when the machine is woken to catch up with an
+	// upgrade: the versions its node reports now.
+	UpgradeFrom string
 }
 
 // Result is the plan.

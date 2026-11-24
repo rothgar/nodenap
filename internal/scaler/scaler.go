@@ -355,6 +355,9 @@ func (s *Scaler) plannerInput(ctx context.Context, spec v1alpha1.PowerPolicySpec
 				t := m.Status.UnneededSince.Time
 				pn.UnneededSince = &t
 			}
+			if w := m.Status.UpgradeWake; w != nil {
+				pn.UpgradeFrom, pn.UpgradeAt = w.From, w.At.Time
+			}
 			switch strings.ToLower(m.Annotations[v1alpha1.OverrideAnnotation]) {
 			case "on":
 				pn.Override = v1alpha1.TargetOn
@@ -426,6 +429,9 @@ func (s *Scaler) act(ctx context.Context, spec v1alpha1.PowerPolicySpec, machine
 		switch {
 		case planned && !spec.DryRun:
 			st.Target, st.TargetReason = a.Target, a.Reason
+			if a.UpgradeFrom != "" {
+				st.UpgradeWake = &v1alpha1.UpgradeWake{From: a.UpgradeFrom, At: metav1.NewTime(in.Now)}
+			}
 			s.event(m, corev1.EventTypeNormal, "Target"+string(a.Target), "%s", a.Reason)
 			if a.Target == v1alpha1.TargetOn {
 				s.mu.Lock()

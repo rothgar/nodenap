@@ -98,6 +98,7 @@ Annotation `nodenap.rothgar.github.io/override: "on"` or `"off"` forces the targ
 | `unneededSince` | When the planner first saw it as unneeded. |
 | `poweredOffAt` | Set when the scaler powered it off; only then are stranded pods force-deleted. |
 | `powerOnAttempt`, `failureCount` | Boot progress and failures (exponential backoff, max 1h). |
+| `upgradeWake` | Versions the node reported when it was last woken to catch up with an [upgrade](how-it-works.md#upgrades), and when. |
 | `cachedNode` | Labels, taints, allocatable and DaemonSet overhead as last seen while on: what the planner schedules against while it's off. |
 | `measuredWatts`, `measuredAt` | Latest sensor reading. |
 
