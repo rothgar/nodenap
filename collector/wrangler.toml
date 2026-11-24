@@ -1,0 +1,25 @@
+# nodenap telemetry collector. See README.md for setup.
+name = "nodenap-collector"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# The stats page. Paths that aren't files here (/report, /stats) go to the Worker.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nodenap-telemetry"
+database_id = "6d17db04-0f82-4d45-88b7-17c5cbd1df30"
+
+[triggers]
+crons = ["17 0 * * *"] # daily: delete yesterday's hashed sources
+
+[vars]
+REPO = "rothgar/nodenap"                 # versions must be tags of this repo
+ESTABLISHED_REPORTS = "7"                # reports before an install counts
+NEW_INSTALLS_PER_SOURCE_PER_DAY = "3"
+MAX_WATTS_PER_MACHINE = "1000"
+FIRST_REPORT_MAX_DAYS = "90"
+# Secret (not here): IP_HASH_SECRET, set with `wrangler secret put IP_HASH_SECRET`

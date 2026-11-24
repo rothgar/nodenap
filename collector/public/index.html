@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nodenap savings</title>
+<meta name="description" content="Energy saved by nodenap, self-reported by opted-in installs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1013;
+    --panel: #151a1f;
+    --line: #242b33;
+    --text: #e6e9ec;
+    --muted: #8b95a0;
+    --green: #73bf69;
+      }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f7f8;
+      --panel: #ffffff;
+      --line: #dfe3e7;
+      --text: #15191d;
+      --muted: #5b6570;
+      --green: #2f8f2a;
+          }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 "IBM Plex Sans", system-ui, sans-serif;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 56px 16px 40px; }
+  header h1 { font-size: clamp(44px, 9vw, 76px); line-height: 1; margin: 0 0 12px; letter-spacing: -0.02em; }
+  header h1 span { color: var(--green); }
+  header p { margin: 0; color: var(--muted); font-size: 19px; }
+
+  .hero { margin: 40px 0 16px; }
+  .hero .card { padding: 32px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 24px; }
+  .label { color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .big { font: 500 clamp(48px, 12vw, 104px)/1.05 "IBM Plex Mono", ui-monospace, monospace; margin: 8px 0 4px; font-variant-numeric: tabular-nums; }
+  .energy .big { color: var(--green); }
+  .note { color: var(--muted); font-size: 14px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .stats .card { padding: 18px 20px; }
+  .stats .value { font: 500 26px/1.2 "IBM Plex Mono", ui-monospace, monospace; margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+  .live { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--green); vertical-align: 1px; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+  .bump { animation: bump 1.5s ease-out; }
+  @keyframes bump { 0% { text-shadow: 0 0 24px var(--green); } 100% { text-shadow: none; } }
+  @media (prefers-reduced-motion: reduce) { .live, .bump { animation: none; } }
+  .status { margin: 16px 0 0; color: var(--muted); font-size: 14px; min-height: 1.5em; }
+  footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  footer p { margin: 0 0 8px; }
+  a { color: var(--green); }
+  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 13px; }
+
+  @media (max-width: 720px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>node<span>nap</span></h1>
+    <p>Save money and power. The energy nodenap has saved so far, across every install that opted in.</p>
+  </header>
+
+  <section class="hero" aria-live="polite">
+    <div class="card energy">
+      <div class="label">Energy saved</div>
+      <div class="big" id="energy">–</div>
+      <div class="note" id="energy-note">&nbsp;</div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="card"><div class="label">Machine-hours off</div><div class="value" id="hours">–</div></div>
+    <div class="card"><div class="label">Installs</div><div class="value" id="installs">–</div></div>
+    <div class="card"><div class="label">Wakes</div><div class="value" id="wakes">–</div></div>
+    <div class="card"><div class="label">Median wake</div><div class="value" id="wake">–</div></div>
+  </section>
+
+  <p class="status" id="status">Loading…</p>
+
+  <footer>
+    <p>Self-reported by opted-in installs. An install counts after <span id="after">7</span> consistent daily reports.
+      Installs send energy saved, machine-hours off and wakes. Never names, addresses, prices or money.</p>
+    <p>Add yours: set <code>spec.telemetry.enabled: true</code> on your PowerPolicy.
+      <a href="https://github.com/rothgar/nodenap/blob/main/docs/savings-and-telemetry.md#anonymous-telemetry-opt-in">What's sent</a>
+      · <a href="https://github.com/rothgar/nodenap">github.com/rothgar/nodenap</a></p>
+  </footer>
+</main>
+<script>
+  // Same origin when served by the collector Worker. To host this page
+  // elsewhere, point STATS_URL at https://<collector>/stats.
+  const STATS_URL = "/stats";
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n, d = 0) => n.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
+
+  function energy(kwh) {
+    if (kwh >= 1e6) return [fmt(kwh / 1e6, 2), "GWh"];
+    if (kwh >= 1e3) return [fmt(kwh / 1e3, 2), "MWh"];
+    return [fmt(kwh, kwh < 100 ? 1 : 0), "kWh"];
+  }
+
+  function duration(s) {
+    if (!s) return "–";
+    return s < 120 ? `${Math.round(s)}s` : `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, "0")}s`;
+  }
+
+  // Numbers count up to their new value when a report changes the totals.
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const shown = {};
+  function animate(id, to, render) {
+    const el = $(id);
+    const from = shown[id];
+    shown[id] = to;
+    if (from === undefined || from === to || reduceMotion) { el.textContent = render(to); return; }
+    const start = performance.now(), ms = 1500;
+    el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / ms);
+      const v = from + (to - from) * (1 - Math.pow(1 - t, 3));
+      el.textContent = render(t === 1 ? to : v);
+      if (t < 1 && shown[id] === to) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(STATS_URL, { headers: { accept: "application/json" }, cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const s = await res.json();
+
+      animate("energy", s.energySavedKWh, (v) => energy(v).join(" "));
+      animate("hours", s.machineHoursOff, (v) => fmt(v, 0));
+      animate("installs", s.installs, (v) => fmt(v, 0));
+      animate("wakes", s.wakes, (v) => fmt(v, 0));
+      $("energy-note").textContent = `${fmt(s.machineHoursOff / 24, 0)} machine-days of idle hardware switched off`;
+      $("wake").textContent = duration(s.medianWakeSeconds);
+      $("after").textContent = s.establishedAfterReports;
+
+      const parts = [`${fmt(s.activeInstalls)} reported this week`];
+      if (s.pendingInstalls) parts.push(`${fmt(s.pendingInstalls)} more still in their first ${s.establishedAfterReports} days`);
+      parts.push(`checked ${new Date().toLocaleTimeString()}`);
+      $("status").innerHTML = `<span class="live" aria-hidden="true"></span>${parts.join(" · ")}`;
+    } catch (err) {
+      $("status").textContent = `Couldn't load totals (${err.message}). Retrying.`;
+    }
+  }
+
+  // Poll while the tab is visible; check right away when it comes back.
+  const POLL_MS = 30_000;
+  let timer;
+  function schedule() { clearTimeout(timer); timer = setTimeout(async () => { await load(); schedule(); }, POLL_MS); }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) clearTimeout(timer); else { load(); schedule(); }
+  });
+  load();
+  schedule();
+</script>
+</body>
+</html>
