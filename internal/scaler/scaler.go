@@ -531,6 +531,7 @@ func (s *Scaler) publish(ctx context.Context, p *v1alpha1.PowerPolicy, in planne
 	}
 	savings := orig.Status.Savings
 	s.addSavings(&savings, in.Now)
+	publishLifetime(savings)
 	s.maybeReport(ctx, p.Spec.Telemetry, &savings, machines, in.Now)
 	*st = v1alpha1.PowerPolicyStatus{
 		Savings:           savings,

@@ -43,15 +43,20 @@ the PowerPolicy resets them. Metrics:
 | `nodenap_wakes_total` | machines woken and Ready |
 | `nodenap_failed_boots_total` | wakes where every powerOn driver timed out |
 | `nodenap_wake_duration_seconds` | histogram, power-on to Node Ready |
+| `nodenap_lifetime_energy_saved_kwh`, `nodenap_lifetime_cost_saved`, `nodenap_lifetime_machine_hours_off`, `nodenap_lifetime_wakes`, `nodenap_lifetime_failed_boots` | gauges: the lifetime totals from the status above |
+| `nodenap_savings_since_timestamp_seconds` | when those totals started (`since`) |
 
 Prometheus counters restart at zero when the controller restarts;
-`increase()` and `rate()` handle that, and the PowerPolicy status keeps the
-lifetime totals.
+`increase()` and `rate()` handle that, but only as far back as Prometheus
+keeps data. For all-time figures use the `nodenap_lifetime_*` gauges, which
+mirror the PowerPolicy status.
 
 ### Grafana dashboard
 
-The chart ships a dashboard: savings for the selected time range (money,
-kWh, machine-hours off, wakes, median wake time), current draw, cost per hour
+The chart ships a dashboard: all-time savings (money, kWh, machine-hours
+off, average saved per day, wakes, and when counting started, whatever the
+time range), savings for the selected time range (money, kWh, machine-hours
+off, wakes, median wake time), current draw, cost per hour
 and price, a power-state timeline per machine, power by machine, savings by
 machine, price over time, and grid/battery when configured. In dry run, the
 "Would act" panel counts the decisions nodenap would have made.
@@ -116,6 +121,10 @@ endpoint.
 
 ## Running a collector
 
+[`collector/`](../collector/) is a ready-made collector: a Cloudflare Worker
+with a D1 database that applies the rules below and serves a page with the
+totals. Its README has the deploy steps.
+
 A collector receives reports and publishes totals. Reports are anonymous,
 so anyone could send fake ones. A collector should make that ineffective
 rather than try to prove identity:
@@ -130,7 +139,7 @@ rather than try to prove identity:
 2. **One report per install per day,** with `report` increasing by one.
    Reject duplicates and out-of-order days.
 3. **Rate-limit new install IDs per source.** Hash the sender's IP address
-   with a secret that rotates daily, keep it only in memory for the limit,
+   under a key that changes daily, keep the hash no longer than that day,
    and never store addresses. This caps how many fresh IDs one source can
    create.
 4. **Count only established installs,** for example ones with seven or more

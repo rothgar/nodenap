@@ -4,12 +4,12 @@ import json, os
 
 DS = {"type": "prometheus", "uid": "${datasource}"}
 M = 'machine=~"$machine"'
-panels, pid = [], [0]
+panels, pid, Y = [], [0], [0]  # Y: offset added to every row and panel below it
 
 def panel(kind, title, x, y, w, h, targets, **kw):
     pid[0] += 1
     p = {"id": pid[0], "type": kind, "title": title, "datasource": DS,
-         "gridPos": {"x": x, "y": y, "w": w, "h": h},
+         "gridPos": {"x": x, "y": y + Y[0], "w": w, "h": h},
          "targets": [{"datasource": DS, "refId": chr(65 + i), "expr": e, "legendFormat": l, **({"instant": True} if kind in ("stat", "bargauge") else {})}
                      for i, (e, l) in enumerate(targets)]}
     p.update(kw)
@@ -17,7 +17,7 @@ def panel(kind, title, x, y, w, h, targets, **kw):
 
 def row(title, y):
     pid[0] += 1
-    panels.append({"id": pid[0], "type": "row", "title": title, "collapsed": False, "gridPos": {"x": 0, "y": y, "w": 24, "h": 1}, "panels": []})
+    panels.append({"id": pid[0], "type": "row", "title": title, "collapsed": False, "gridPos": {"x": 0, "y": y + Y[0], "w": 24, "h": 1}, "panels": []})
 
 def defaults(unit, decimals=None, color="fixed", fixed=None, extra=None):
     d = {"unit": unit, "color": {"mode": color, **({"fixedColor": fixed} if fixed else {})}}
@@ -29,7 +29,34 @@ def defaults(unit, decimals=None, color="fixed", fixed=None, extra=None):
 stat_opts = {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
              "colorMode": "value", "graphMode": "none", "textMode": "auto", "justifyMode": "auto"}
 
-# --- Savings -------------------------------------------------------------
+# --- Savings, all time ---------------------------------------------------
+# Lifetime totals from PowerPolicy status.savings, exported as gauges: they
+# survive controller restarts and outlast Prometheus retention, and don't
+# depend on the dashboard's time range. They cover all machines.
+lifetime = "Since the PowerPolicy started counting (status.savings.since), whatever the dashboard's time range. All machines."
+row("Savings (all time)", 0)
+panel("stat", "Money saved", 0, 1, 4, 4, [("max(nodenap_lifetime_cost_saved)", "")],
+      fieldConfig=defaults("currencyUSD", 2, fixed="green"), options=stat_opts,
+      description=lifetime + " Change the unit if you don't pay in USD.")
+panel("stat", "Energy saved", 4, 1, 4, 4, [("max(nodenap_lifetime_energy_saved_kwh)", "")],
+      fieldConfig=defaults("kwatth", 2, fixed="green"), options=stat_opts, description=lifetime)
+panel("stat", "Machine-hours off", 8, 1, 4, 4, [("max(nodenap_lifetime_machine_hours_off)", "")],
+      fieldConfig=defaults("suffix: h", 1, fixed="blue"), options=stat_opts, description=lifetime)
+panel("stat", "Saved per day", 12, 1, 4, 4,
+      [("max(nodenap_lifetime_cost_saved) / ((time() - max(nodenap_savings_since_timestamp_seconds)) / 86400)", "")],
+      fieldConfig=defaults("currencyUSD", 2, fixed="green"), options=stat_opts,
+      description="Average: all-time money saved divided by the days since counting started.")
+panel("stat", "Wakes / failed boots", 16, 1, 4, 4,
+      [("max(nodenap_lifetime_wakes)", "wakes"), ("max(nodenap_lifetime_failed_boots)", "failed")],
+      fieldConfig=defaults("none", 0, color="thresholds",
+                           extra={"thresholds": {"mode": "absolute", "steps": [{"color": "text", "value": None}]}}),
+      options={**stat_opts, "textMode": "value_and_name"}, description=lifetime)
+panel("stat", "Counting since", 20, 1, 4, 4, [("max(nodenap_savings_since_timestamp_seconds) * 1000", "")],
+      fieldConfig=defaults("dateTimeFromNow", fixed="text"), options=stat_opts,
+      description="When the lifetime totals started: status.savings.since. Deleting the PowerPolicy resets them.")
+Y[0] = 5
+
+# --- Savings, selected range ---------------------------------------------
 row("Savings (selected time range)", 0)
 panel("stat", "Money saved", 0, 1, 4, 4, [("sum(increase(nodenap_cost_saved_total[$__range]))", "")],
       fieldConfig=defaults("currencyUSD", 2, fixed="green"), options=stat_opts,
@@ -37,7 +64,7 @@ panel("stat", "Money saved", 0, 1, 4, 4, [("sum(increase(nodenap_cost_saved_tota
 panel("stat", "Energy saved", 4, 1, 4, 4, [(f"sum(increase(nodenap_energy_saved_kwh_total{{{M}}}[$__range]))", "")],
       fieldConfig=defaults("kwatth", 2, fixed="green"), options=stat_opts)
 panel("stat", "Machine-hours off", 8, 1, 4, 4, [(f"sum(increase(nodenap_off_seconds_total{{{M}}}[$__range])) / 3600", "")],
-      fieldConfig=defaults("h", 1, fixed="blue"), options=stat_opts)
+      fieldConfig=defaults("suffix: h", 1, fixed="blue"), options=stat_opts)
 panel("stat", "Machines off now", 12, 1, 4, 4,
       [(f'count(nodenap_machine_state{{state="Off",{M}}} == 1) or vector(0)', "")],
       fieldConfig=defaults("none", 0, fixed="blue"), options=stat_opts)
@@ -100,7 +127,7 @@ panel("bargauge", "Energy saved by machine", 12, 19, 6, 8,
                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False}})
 panel("bargauge", "Hours off by machine", 18, 19, 6, 8,
       [(f"sort_desc(sum by (machine) (increase(nodenap_off_seconds_total{{{M}}}[$__range])) / 3600)", "{{machine}}")],
-      fieldConfig=defaults("h", 1, fixed="blue"),
+      fieldConfig=defaults("suffix: h", 1, fixed="blue"),
       options={"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": True,
                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False}})
 

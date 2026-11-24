@@ -66,7 +66,7 @@
     {
       "id": 1,
       "type": "row",
-      "title": "Savings (selected time range)",
+      "title": "Savings (all time)",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -87,6 +87,348 @@
       "gridPos": {
         "x": 0,
         "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(nodenap_lifetime_cost_saved)",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "description": "Since the PowerPolicy started counting (status.savings.since), whatever the dashboard's time range. All machines. Change the unit if you don't pay in USD."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Energy saved",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(nodenap_lifetime_energy_saved_kwh)",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "description": "Since the PowerPolicy started counting (status.savings.since), whatever the dashboard's time range. All machines."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Machine-hours off",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(nodenap_lifetime_machine_hours_off)",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: h",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "description": "Since the PowerPolicy started counting (status.savings.since), whatever the dashboard's time range. All machines."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Saved per day",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(nodenap_lifetime_cost_saved) / ((time() - max(nodenap_savings_since_timestamp_seconds)) / 86400)",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "description": "Average: all-time money saved divided by the days since counting started."
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Wakes / failed boots",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(nodenap_lifetime_wakes)",
+          "legendFormat": "wakes",
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "max(nodenap_lifetime_failed_boots)",
+          "legendFormat": "failed",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "auto"
+      },
+      "description": "Since the PowerPolicy started counting (status.savings.since), whatever the dashboard's time range. All machines."
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Counting since",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max(nodenap_savings_since_timestamp_seconds) * 1000",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeFromNow",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "description": "When the lifetime totals started: status.savings.since. Deleting the PowerPolicy resets them."
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Savings (selected time range)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Money saved",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
         "w": 4,
         "h": 4
       },
@@ -129,7 +471,7 @@
       "description": "Price at the time \u00d7 energy not used, for machines nodenap powered off. Change the unit if you don't pay in USD."
     },
     {
-      "id": 3,
+      "id": 10,
       "type": "stat",
       "title": "Energy saved",
       "datasource": {
@@ -138,7 +480,7 @@
       },
       "gridPos": {
         "x": 4,
-        "y": 1,
+        "y": 6,
         "w": 4,
         "h": 4
       },
@@ -180,7 +522,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 11,
       "type": "stat",
       "title": "Machine-hours off",
       "datasource": {
@@ -189,7 +531,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 1,
+        "y": 6,
         "w": 4,
         "h": 4
       },
@@ -207,7 +549,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "h",
+          "unit": "suffix: h",
           "color": {
             "mode": "fixed",
             "fixedColor": "blue"
@@ -231,7 +573,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 12,
       "type": "stat",
       "title": "Machines off now",
       "datasource": {
@@ -240,7 +582,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 1,
+        "y": 6,
         "w": 4,
         "h": 4
       },
@@ -282,7 +624,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 13,
       "type": "stat",
       "title": "Wakes / failed boots",
       "datasource": {
@@ -291,7 +633,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 1,
+        "y": 6,
         "w": 4,
         "h": 4
       },
@@ -351,7 +693,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 14,
       "type": "stat",
       "title": "Median wake time",
       "datasource": {
@@ -360,7 +702,7 @@
       },
       "gridPos": {
         "x": 20,
-        "y": 1,
+        "y": 6,
         "w": 4,
         "h": 4
       },
@@ -403,20 +745,20 @@
       "description": "Power-on to Node Ready."
     },
     {
-      "id": 8,
+      "id": 15,
       "type": "row",
       "title": "Now",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 10,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 9,
+      "id": 16,
       "type": "stat",
       "title": "Machines power",
       "datasource": {
@@ -425,7 +767,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 6,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -467,7 +809,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 17,
       "type": "stat",
       "title": "Machines cost / hour",
       "datasource": {
@@ -476,7 +818,7 @@
       },
       "gridPos": {
         "x": 4,
-        "y": 6,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -518,7 +860,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 18,
       "type": "stat",
       "title": "Grid price / kWh",
       "datasource": {
@@ -527,7 +869,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 6,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -569,7 +911,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 19,
       "type": "stat",
       "title": "Effective price / kWh",
       "datasource": {
@@ -578,7 +920,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 6,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -621,7 +963,7 @@
       "description": "What 100 W more load would cost per kWh after solar export and battery."
     },
     {
-      "id": 13,
+      "id": 20,
       "type": "stat",
       "title": "Pending pods",
       "datasource": {
@@ -630,7 +972,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 6,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -684,7 +1026,7 @@
       }
     },
     {
-      "id": 14,
+      "id": 21,
       "type": "stat",
       "title": "Would act (dry run)",
       "datasource": {
@@ -693,7 +1035,7 @@
       },
       "gridPos": {
         "x": 20,
-        "y": 6,
+        "y": 11,
         "w": 4,
         "h": 4
       },
@@ -736,20 +1078,20 @@
       "description": "Decisions nodenap logged but did not apply because dryRun is true."
     },
     {
-      "id": 15,
+      "id": 22,
       "type": "row",
       "title": "Machines",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 10,
+        "y": 15,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 16,
+      "id": 23,
       "type": "state-timeline",
       "title": "Power state",
       "datasource": {
@@ -758,7 +1100,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 11,
+        "y": 16,
         "w": 24,
         "h": 8
       },
@@ -844,7 +1186,7 @@
       }
     },
     {
-      "id": 17,
+      "id": 24,
       "type": "timeseries",
       "title": "Power by machine",
       "datasource": {
@@ -853,7 +1195,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 19,
+        "y": 24,
         "w": 12,
         "h": 8
       },
@@ -906,7 +1248,7 @@
       "description": "Measured draw (sensor) of each machine; machines without a sensor are absent."
     },
     {
-      "id": 18,
+      "id": 25,
       "type": "bargauge",
       "title": "Energy saved by machine",
       "datasource": {
@@ -915,7 +1257,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 19,
+        "y": 24,
         "w": 6,
         "h": 8
       },
@@ -956,7 +1298,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 26,
       "type": "bargauge",
       "title": "Hours off by machine",
       "datasource": {
@@ -965,7 +1307,7 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 19,
+        "y": 24,
         "w": 6,
         "h": 8
       },
@@ -983,7 +1325,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "h",
+          "unit": "suffix: h",
           "color": {
             "mode": "fixed",
             "fixedColor": "blue"
@@ -1006,20 +1348,20 @@
       }
     },
     {
-      "id": 20,
+      "id": 27,
       "type": "row",
       "title": "Energy",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 27,
+        "y": 32,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 21,
+      "id": 28,
       "type": "timeseries",
       "title": "Price per kWh",
       "datasource": {
@@ -1028,7 +1370,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 28,
+        "y": 33,
         "w": 8,
         "h": 8
       },
@@ -1082,7 +1424,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 29,
       "type": "timeseries",
       "title": "Savings over time",
       "datasource": {
@@ -1091,7 +1433,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 28,
+        "y": 33,
         "w": 8,
         "h": 8
       },
@@ -1134,7 +1476,7 @@
       }
     },
     {
-      "id": 23,
+      "id": 30,
       "type": "timeseries",
       "title": "Grid and battery",
       "datasource": {
@@ -1143,7 +1485,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 28,
+        "y": 33,
         "w": 8,
         "h": 8
       },

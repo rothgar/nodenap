@@ -45,7 +45,15 @@ var (
 	FailedBoots = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "nodenap_failed_boots_total", Help: "Wakes where every powerOn driver timed out.",
 	})
-	WakeSeconds = prometheus.NewHistogram(prometheus.HistogramOpts{
+	// Lifetime totals from PowerPolicy status.savings. Unlike the counters
+	// above they survive controller restarts and outlast Prometheus retention.
+	LifetimeEnergy      = gauge("lifetime_energy_saved_kwh", "Energy saved since status.savings.since.")
+	LifetimeCost        = gauge("lifetime_cost_saved", "Money saved since status.savings.since, at the price at the time.")
+	LifetimeHoursOff    = gauge("lifetime_machine_hours_off", "Machine-hours fully off since status.savings.since.")
+	LifetimeWakes       = gauge("lifetime_wakes", "Machines woken and Ready since status.savings.since.")
+	LifetimeFailedBoots = gauge("lifetime_failed_boots", "Failed wakes since status.savings.since.")
+	SavingsSince        = gauge("savings_since_timestamp_seconds", "When the lifetime totals started (status.savings.since).")
+	WakeSeconds         = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name: "nodenap_wake_duration_seconds", Help: "Power-on to Node Ready.",
 		Buckets: []float64{15, 30, 60, 120, 180, 300, 600, 1200},
 	})
@@ -54,5 +62,6 @@ var (
 func init() {
 	crmetrics.Registry.MustRegister(MachineState, MachineWatts, Price, EffectivePrice, GridPower,
 		BatterySoC, MachinesWatts, CostPerHour, PendingPods, Actions, Errors,
-		EnergySaved, CostSaved, OffSeconds, Wakes, FailedBoots, WakeSeconds)
+		EnergySaved, CostSaved, OffSeconds, Wakes, FailedBoots, WakeSeconds,
+		LifetimeEnergy, LifetimeCost, LifetimeHoursOff, LifetimeWakes, LifetimeFailedBoots, SavingsSince)
 }

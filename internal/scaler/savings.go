@@ -98,6 +98,20 @@ func (s *Scaler) addSavings(sv *v1alpha1.Savings, now time.Time) {
 	sv.FailedBoots += t.failedBoots
 }
 
+// publishLifetime exports the persisted totals as gauges, so dashboards can
+// show all-time savings regardless of restarts or Prometheus retention.
+func publishLifetime(sv v1alpha1.Savings) {
+	num := func(v string) float64 { f, _ := energy.ParseDecimal(v, 0); return f }
+	metrics.LifetimeEnergy.Set(num(sv.EnergyKWh))
+	metrics.LifetimeCost.Set(num(sv.Cost))
+	metrics.LifetimeHoursOff.Set(num(sv.MachineHoursOff))
+	metrics.LifetimeWakes.Set(float64(sv.Wakes))
+	metrics.LifetimeFailedBoots.Set(float64(sv.FailedBoots))
+	if sv.Since != nil {
+		metrics.SavingsSince.Set(float64(sv.Since.Unix()))
+	}
+}
+
 // Report is the anonymous daily telemetry payload: cumulative counters only.
 // The collector validates it against the same install's previous reports.
 type Report struct {
