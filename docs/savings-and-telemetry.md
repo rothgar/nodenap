@@ -80,14 +80,15 @@ change the unit to your currency in the panel settings.
 
 ## Anonymous telemetry (opt-in)
 
-If you'd like to add your install to a public "energy saved by nodenap"
-total, turn on telemetry. It is **off by default**.
+If you'd like to add your install to the public "energy saved by nodenap"
+total at <https://nodenap-collector.123dev.workers.dev>, turn on telemetry.
+It is **off by default**.
 
 ```yaml
 spec:
   telemetry:
     enabled: true
-    endpoint: https://<collector>/report
+    endpoint: https://nodenap-collector.123dev.workers.dev/report
 ```
 
 Once a day the scaler POSTs one JSON report and **logs the exact payload
