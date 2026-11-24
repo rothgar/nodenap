@@ -46,6 +46,9 @@ func blocker(pod *corev1.Pod) string {
 	if pod.Annotations[v1alpha1.SafeToEvictAnnotation] == "true" {
 		return ""
 	}
+	if g := groupOf(pod); g != "" {
+		return "pod " + podKey(pod) + " is part of group " + g + "; moving it would restart the whole group"
+	}
 	hasController := false
 	for _, o := range pod.OwnerReferences {
 		if o.Controller != nil && *o.Controller {

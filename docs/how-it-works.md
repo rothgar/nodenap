@@ -34,6 +34,25 @@ wake another one. Pods no machine can run are listed in
 `headroom` wakes the cheapest capacity whenever spare CPU/memory across Ready
 nodes drops below it.
 
+### Pod groups
+
+Some workloads only run when all their pods run, such as a
+[LeaderWorkerSet](https://lws.sigs.k8s.io/) group spread over two machines.
+nodenap finds these groups from the label their controller puts on every
+member, so there's nothing to configure:
+`leaderworkerset.sigs.k8s.io/group-key` (LeaderWorkerSet) or
+`scheduling.x-k8s.io/pod-group` (scheduler-plugins coscheduling).
+
+- **Waking:** machines are woken for a group only when every pending member
+  fits on a booting or powered-off machine. Otherwise none are, and the group
+  is listed in `status.unsatisfiablePods` (`only 1 of 2 pending pods can be
+  placed`).
+- **Powering off:** a node running part of a group stays on, because evicting
+  one member restarts the whole group. When the group goes away (for example
+  the LeaderWorkerSet scales to 0), its nodes become unneeded together.
+
+A LeaderWorkerSet with `size: 1` isn't treated as a group.
+
 ## Powering machines off
 
 A machine is **unneeded** when all of these hold:
@@ -42,8 +61,8 @@ A machine is **unneeded** when all of these hold:
   `scaleDown.utilizationThresholdPercent`;
 - every pod on it (except DaemonSet, static and ignored pods) fits on the
   other running nodes;
-- no pod is bare (no controller) or annotated
-  `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`;
+- no pod is bare (no controller), part of a [pod group](#pod-groups), or
+  annotated `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`;
 - powering it off saves at least `scaleDown.minSavingsPerHour`.
 
 After `unneededTime`, the **least efficient machine (most watts per core)**
@@ -111,6 +130,7 @@ Exported on `:18080/metrics`:
 | `nodenap_errors_total` | failed loop runs |
 | `nodenap_energy_saved_kwh_total{machine}`, `nodenap_cost_saved_total` | savings ([savings and telemetry](savings-and-telemetry.md)) |
 | `nodenap_off_seconds_total{machine}`, `nodenap_wakes_total`, `nodenap_failed_boots_total`, `nodenap_wake_duration_seconds` | availability |
+| `nodenap_lifetime_*`, `nodenap_savings_since_timestamp_seconds` | all-time savings totals (gauges mirroring `status.savings`) |
 
 Cost per machine in Grafana:
 `nodenap_machine_watts / 1000 * on() group_left nodenap_price_per_kwh`.

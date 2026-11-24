@@ -175,6 +175,7 @@ func (p *run) scaleUp() {
 
 	maxUp := p.in.Settings.MaxConcurrentUp
 	candidates := p.wakeCandidates()
+	remaining = p.dropPartialGroups(remaining, candidates)
 	for len(remaining) > 0 {
 		if maxUp > 0 && p.inFlightUp+len(p.waking) >= maxUp {
 			p.note("scale-up limited by maxConcurrent=%d; %d pods still waiting", maxUp, len(remaining))
