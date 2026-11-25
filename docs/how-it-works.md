@@ -67,6 +67,14 @@ A machine is woken at most once for the same old versions, recorded in
 `status.upgradeWake`, so one deliberately kept on an older version doesn't
 wake over and over.
 
+**Omni.** Omni waits for every machine in the cluster to be healthy before
+it upgrades any of them, so the version check above would never fire. If a
+Machine uses the [`omni` driver](power-drivers.md), nodenap also asks Omni
+once a minute whether a Talos or Kubernetes upgrade is running (including
+reverting). While one is, every powered-off machine is woken
+(`upgrade: Omni Talos upgrading 1.14.5 → 1.14.7`) and nothing is powered
+off. When Omni reports it done, machines go back to the usual idle rules.
+
 ## Powering machines off
 
 A machine is **unneeded** when all of these hold:

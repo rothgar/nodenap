@@ -242,6 +242,20 @@ func (e *Env) omni(ctx context.Context, s *v1alpha1.Omni, nodeName string) (*Omn
 	return &Omni{API: api, MachineID: s.MachineID, NodeName: nodeName}, nil
 }
 
+// Upgrade asks the management plane behind d whether an OS or Kubernetes
+// upgrade is in progress on nodeName's cluster ("" if not, or if d can't tell).
+func (e *Env) Upgrade(ctx context.Context, d v1alpha1.Driver, nodeName string) (string, error) {
+	if d.Omni == nil {
+		return "", nil
+	}
+	o, err := e.omni(ctx, d.Omni, nodeName)
+	if err != nil {
+		return "", err
+	}
+	defer o.API.Close() //nolint:errcheck
+	return o.API.Upgrade(ctx, nodeName)
+}
+
 // InternalIP returns the node's first InternalIP.
 func InternalIP(n *corev1.Node) string {
 	if n == nil {

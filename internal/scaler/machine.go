@@ -26,9 +26,9 @@ const (
 	maxFailureBackoff       = time.Hour
 	unexpectedNotReadyGrace = 5 * time.Minute
 	// offSettle: kubelet status posted this soon after Off isn't taken as a manual power-on.
-	offSettle = 3 * time.Minute
-	strandedPodGrace        = time.Minute
-	defaultPowerCutDelay    = 30 * time.Second
+	offSettle            = 3 * time.Minute
+	strandedPodGrace     = time.Minute
+	defaultPowerCutDelay = 30 * time.Second
 )
 
 type timeouts struct{ boot, drain, shutdown time.Duration }

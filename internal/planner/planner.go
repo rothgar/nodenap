@@ -17,6 +17,7 @@ func Plan(in Input) Result {
 	p := &run{in: in, res: Result{Unneeded: map[string]time.Time{}}}
 	p.index()
 	p.overrides()
+	p.clusterUpgrade()
 	p.upgrades()
 	p.scaleUp()
 	p.headroom()

@@ -72,6 +72,10 @@ type Scaler struct {
 	lastScaleUp time.Time
 	dryRunSeen  map[string]v1alpha1.Target
 
+	// cluster upgrade reported by the management plane, checked every upgradeCheck
+	upgrade        string
+	upgradeChecked time.Time
+
 	// savings accounting
 	lastRun           time.Time
 	run               tally
@@ -202,6 +206,7 @@ func (s *Scaler) RunOnce(ctx context.Context) (time.Duration, error) {
 	}
 	in.Settings, in.Ignored = settings, ignored
 	in.Energy = energy.Read(ctx, spec.Energy, s.Drivers.Resolver, now)
+	in.Upgrade = s.clusterUpgrade(ctx, machines, now)
 	s.mu.Lock()
 	in.LastScaleUp = s.lastScaleUp
 	s.mu.Unlock()
@@ -587,4 +592,54 @@ func (s *Scaler) publish(ctx context.Context, p *v1alpha1.PowerPolicy, in planne
 			metrics.MachineWatts.WithLabelValues(n.Name, "measured").Set(*n.MeasuredWatts)
 		}
 	}
+}
+
+const upgradeCheck = time.Minute
+
+// clusterUpgrade asks the management plane (Omni) through the first machine
+// with an Omni driver whether the cluster is being upgraded. On error the
+// last answer stands, so a flaky API doesn't end an upgrade pause early.
+func (s *Scaler) clusterUpgrade(ctx context.Context, machines []v1alpha1.Machine, now time.Time) string {
+	if now.Sub(s.upgradeChecked) < upgradeCheck {
+		return s.upgrade
+	}
+	s.upgradeChecked = now
+	for i := range machines {
+		m := &machines[i]
+		d := omniDriver(m.Spec)
+		if d == nil {
+			continue
+		}
+		cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		u, err := s.Drivers.Upgrade(cctx, *d, m.NodeName())
+		cancel()
+		if err != nil {
+			log.FromContext(ctx).Info("checking for a cluster upgrade failed", "machine", m.Name, "err", err.Error())
+			return s.upgrade
+		}
+		if u != s.upgrade {
+			log.FromContext(ctx).Info("cluster upgrade", "status", u)
+		}
+		s.upgrade = u
+		return u
+	}
+	s.upgrade = ""
+	return ""
+}
+
+func omniDriver(spec v1alpha1.MachineSpec) *v1alpha1.Driver {
+	for _, d := range append([]*v1alpha1.Driver{spec.Shutdown, spec.PowerCut}, ptrs(spec.PowerOn)...) {
+		if d != nil && d.Omni != nil {
+			return d
+		}
+	}
+	return nil
+}
+
+func ptrs(ds []v1alpha1.Driver) []*v1alpha1.Driver {
+	out := make([]*v1alpha1.Driver, len(ds))
+	for i := range ds {
+		out[i] = &ds[i]
+	}
+	return out
 }

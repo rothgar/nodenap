@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	omniclient "github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -15,6 +18,9 @@ type OmniAPI interface {
 	MachinePowerOff(ctx context.Context, machineID string) error
 	MachinePowerOn(ctx context.Context, machineID string) error
 	MachineIDForNode(ctx context.Context, nodeName string) (string, error)
+	// Upgrade describes a Talos or Kubernetes upgrade in progress on the
+	// node's cluster, or "".
+	Upgrade(ctx context.Context, nodeName string) (string, error)
 	Close() error
 }
 
@@ -88,6 +94,50 @@ func (a *omniClientAPI) MachineIDForNode(ctx context.Context, nodeName string) (
 		}
 	}
 	return "", fmt.Errorf("omni: no machine with Kubernetes node name %q", nodeName)
+}
+
+func (a *omniClientAPI) Upgrade(ctx context.Context, nodeName string) (string, error) {
+	id, err := a.MachineIDForNode(ctx, nodeName)
+	if err != nil {
+		return "", err
+	}
+	cmi, err := safe.StateGetByID[*omni.ClusterMachineIdentity](ctx, a.c.Omni().State(), id)
+	if err != nil {
+		return "", fmt.Errorf("omni: %w", err)
+	}
+	cluster, _ := cmi.Metadata().Labels().Get(omni.LabelCluster)
+	if cluster == "" {
+		return "", fmt.Errorf("omni: machine %s has no cluster", id)
+	}
+	var parts []string
+	if t, err := safe.StateGetByID[*omni.TalosUpgradeStatus](ctx, a.c.Omni().State(), cluster); err == nil {
+		s := t.TypedSpec().Value
+		switch s.GetPhase() {
+		case specs.TalosUpgradeStatusSpec_Upgrading, specs.TalosUpgradeStatusSpec_Reverting,
+			specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics:
+			parts = append(parts, upgradeText("Talos", s.GetPhase().String(), s.GetLastUpgradeVersion(), s.GetCurrentUpgradeVersion()))
+		}
+	} else if !state.IsNotFoundError(err) {
+		return "", fmt.Errorf("omni: talos upgrade status: %w", err)
+	}
+	if k, err := safe.StateGetByID[*omni.KubernetesUpgradeStatus](ctx, a.c.Omni().State(), cluster); err == nil {
+		s := k.TypedSpec().Value
+		switch s.GetPhase() {
+		case specs.KubernetesUpgradeStatusSpec_Upgrading, specs.KubernetesUpgradeStatusSpec_Reverting:
+			parts = append(parts, upgradeText("Kubernetes", s.GetPhase().String(), s.GetLastUpgradeVersion(), s.GetCurrentUpgradeVersion()))
+		}
+	} else if !state.IsNotFoundError(err) {
+		return "", fmt.Errorf("omni: kubernetes upgrade status: %w", err)
+	}
+	return strings.Join(parts, ", "), nil
+}
+
+func upgradeText(what, phase, from, to string) string {
+	s := "Omni " + what + " " + strings.ToLower(phase)
+	if from != "" && to != "" {
+		s += " " + from + " → " + to
+	}
+	return s
 }
 
 func (a *omniClientAPI) Close() error { return a.c.Close() }

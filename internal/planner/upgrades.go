@@ -69,6 +69,26 @@ func (p *run) behind(n *Node) string {
 	return strings.Join(parts, ", ")
 }
 
+// clusterUpgrade wakes every powered-off machine while the management plane
+// reports an upgrade in progress: Omni, for one, waits for every machine in
+// the cluster to be healthy before upgrading any of them.
+func (p *run) clusterUpgrade() {
+	if p.in.Upgrade == "" {
+		return
+	}
+	for _, n := range p.wakeCandidates() {
+		if n.State != v1alpha1.PowerOff {
+			continue
+		}
+		if maxUp := p.in.Settings.MaxConcurrentUp; maxUp > 0 && p.inFlightUp+len(p.waking) >= maxUp {
+			p.note("upgrade wake-ups limited by maxConcurrent=%d", maxUp)
+			return
+		}
+		p.act(n, v1alpha1.TargetOn, "upgrade: "+p.in.Upgrade)
+		p.booting[n.Name] = NewCachedNodeView(n.Name, n.Cached)
+	}
+}
+
 // upgrades wakes powered-off machines whose versions are behind.
 func (p *run) upgrades() {
 	for _, n := range p.in.Nodes {

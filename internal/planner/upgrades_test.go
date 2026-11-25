@@ -111,3 +111,20 @@ func TestVersionsOf(t *testing.T) {
 		}
 	}
 }
+
+func TestClusterUpgradeWakesAllAndPausesPowerOff(t *testing.T) {
+	nodes := build(fleet())
+	setVersions(nodes)
+	byName(nodes, "pi4-1").UnneededSince = ptr.To(now.Add(-time.Hour))
+	r := Plan(Input{Now: now, Nodes: nodes, Energy: grid(0.30), Settings: settings(),
+		Upgrade: "Omni Talos upgrading 1.14.5 → 1.14.7"})
+	got := targets(r)
+	for _, name := range []string{"pi4-2", "spark", "qb2"} {
+		if got[name] != v1alpha1.TargetOn {
+			t.Fatalf("%s not woken: %v", name, r.Actions)
+		}
+	}
+	if got["pi4-1"] != "" || !strings.Contains(r.Actions[0].Reason, "upgrade: Omni Talos upgrading") {
+		t.Fatalf("nothing should go off during the upgrade: %v", r.Actions)
+	}
+}

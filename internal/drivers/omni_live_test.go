@@ -27,3 +27,23 @@ func TestOmniLiveLookup(t *testing.T) {
 	}
 	t.Logf("node %s → Omni machine %s", node, id)
 }
+
+// TestOmniLiveUpgrade prints the upgrade nodenap would see (read-only).
+func TestOmniLiveUpgrade(t *testing.T) {
+	node := os.Getenv("OMNI_LIVE_NODE")
+	if node == "" {
+		t.Skip("set OMNI_LIVE_NODE, OMNI_ENDPOINT and OMNI_SERVICE_ACCOUNT_KEY to run against a real Omni")
+	}
+	api, err := NewOmniAPI(os.Getenv("OMNI_ENDPOINT"), os.Getenv("OMNI_SERVICE_ACCOUNT_KEY"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer api.Close() //nolint:errcheck
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	u, err := api.Upgrade(ctx, node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("upgrade: %q", u)
+}

@@ -106,6 +106,10 @@ type Input struct {
 	// Ignored reports pods that never wake machines and never block
 	// powering a node off. Nil ignores nothing.
 	Ignored func(*corev1.Pod) bool
+	// Upgrade describes a cluster upgrade in progress, reported by the
+	// management plane (e.g. Omni). While set, off machines are woken and
+	// nothing is powered off.
+	Upgrade string
 }
 
 func (in Input) ignored(p *corev1.Pod) bool { return in.Ignored != nil && in.Ignored(p) }

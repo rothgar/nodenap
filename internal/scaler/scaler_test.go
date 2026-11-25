@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	v1alpha1 "github.com/rothgar/nodenap/api/v1alpha1"
+	"github.com/rothgar/nodenap/internal/drivers"
 )
 
 // harness runs the real loop against a fake API server, with machines
@@ -637,4 +638,48 @@ func TestShutdownHeartbeatIsNotAPowerOn(t *testing.T) {
 	h.now = h.now.Add(time.Hour)
 	h.run()
 	h.state("gpu", v1alpha1.PowerOff)
+}
+
+type fakeOmni struct{ upgrade string }
+
+func (f *fakeOmni) MachinePowerOff(context.Context, string) error { return nil }
+func (f *fakeOmni) MachinePowerOn(context.Context, string) error  { return nil }
+func (f *fakeOmni) MachineIDForNode(context.Context, string) (string, error) {
+	return "id", nil
+}
+func (f *fakeOmni) Upgrade(context.Context, string) (string, error) { return f.upgrade, nil }
+func (f *fakeOmni) Close() error                                    { return nil }
+
+// While Omni reports an upgrade, off machines are woken (Omni waits for
+// every machine to be healthy) and nothing is powered off.
+func TestOmniUpgradeWakesOffMachines(t *testing.T) {
+	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "omni", Namespace: "nodenap"},
+		Data: map[string][]byte{"endpoint": []byte("https://omni.example"), "serviceAccountKey": []byte("a2V5")}}
+	h := newHarness(t, policy(false), secret, node("cp", true, "4", "8Gi", map[string]string{"node-role.kubernetes.io/control-plane": ""}),
+		node("gpu", true, "20", "120Gi", nil))
+	api := &fakeOmni{}
+	h.s.NewOmni = func(string, string) (drivers.OmniAPI, error) { return api, nil }
+	m := h.machine("gpu", func(m *v1alpha1.Machine) {
+		m.Spec.Shutdown = &v1alpha1.Driver{Omni: &v1alpha1.Omni{CredentialsSecretRef: v1alpha1.SecretRef{Name: "omni"}}}
+	})
+	if err := h.c.Create(context.Background(), m); err != nil {
+		t.Fatal(err)
+	}
+	h.run()
+	h.override("gpu", "off")
+	h.run()
+	h.run()
+	h.setReady("gpu", false)
+	h.now = h.now.Add(time.Minute)
+	h.run()
+	h.state("gpu", v1alpha1.PowerOff)
+	h.override("gpu", "")
+
+	api.upgrade = "Omni Talos upgrading 1.14.5 → 1.14.7"
+	h.now = h.now.Add(2 * time.Minute)
+	h.run()
+	h.state("gpu", v1alpha1.PowerBooting)
+	if r := h.m("gpu").Status.TargetReason; r != "upgrade: Omni Talos upgrading 1.14.5 → 1.14.7" {
+		t.Fatalf("reason %q", r)
+	}
 }

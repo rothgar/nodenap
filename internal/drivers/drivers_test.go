@@ -164,9 +164,10 @@ func TestRedfishAllRoles(t *testing.T) {
 }
 
 type fakeOmni struct {
-	off   []string
-	nodes map[string]string
-	onErr error
+	off     []string
+	nodes   map[string]string
+	onErr   error
+	upgrade string
 }
 
 func (f *fakeOmni) MachinePowerOff(_ context.Context, id string) error {
@@ -180,7 +181,8 @@ func (f *fakeOmni) MachineIDForNode(_ context.Context, n string) (string, error)
 	}
 	return "", fmt.Errorf("omni: no machine with Kubernetes node name %q", n)
 }
-func (f *fakeOmni) Close() error { return nil }
+func (f *fakeOmni) Upgrade(context.Context, string) (string, error) { return f.upgrade, nil }
+func (f *fakeOmni) Close() error                                    { return nil }
 
 func TestOmniShutdownByNodeName(t *testing.T) {
 	api := &fakeOmni{nodes: map[string]string{"gpu-1": "c828b893"}}

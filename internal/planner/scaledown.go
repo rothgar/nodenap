@@ -161,6 +161,10 @@ func (p *run) scaleDown() {
 	if s.ScaleDownDisabled {
 		return
 	}
+	if p.in.Upgrade != "" {
+		p.note("no power-offs during the upgrade (%s)", p.in.Upgrade)
+		return
+	}
 
 	// Track which nodes are unneeded even when we won't act this round, so
 	// the unneeded timer keeps running.

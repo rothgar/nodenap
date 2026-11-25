@@ -235,6 +235,10 @@ kubectl -n nodenap create secret generic omni \
 
 Service account keys expire after a year by default (`--ttl`).
 
+With an `omni` driver configured, nodenap also pauses power-offs and wakes
+every machine while Omni upgrades the cluster
+([upgrades](how-it-works.md#upgrades)).
+
 `omni` can also be used in `powerOn`, but only for machines run by an Omni
 infrastructure provider (such as the bare-metal provider). For any other
 machine, pair `omni` shutdown with Wake-on-LAN, a plug or a BMC to power on.
