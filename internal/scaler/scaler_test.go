@@ -559,3 +559,82 @@ func TestSuggestionsForNodesWithoutMachines(t *testing.T) {
 		t.Fatalf("suggestion should persist: %+v", p.Status.Suggestions)
 	}
 }
+
+// A machine powered on by hand while Off: the kubelet posts status again but
+// the node can't become Ready while the NoExecute off taint keeps the CNI
+// away. nodenap must notice and let it boot.
+func TestManualPowerOnIsAdopted(t *testing.T) {
+	h := newHarness(t, policy(false), node("cp", true, "4", "8Gi", map[string]string{"node-role.kubernetes.io/control-plane": ""}),
+		node("gpu", true, "20", "120Gi", nil))
+	if err := h.c.Create(context.Background(), h.machine("gpu")); err != nil {
+		t.Fatal(err)
+	}
+	h.run()
+	h.override("gpu", "off")
+	h.run()
+	h.run()
+	h.setReady("gpu", false)
+	h.now = h.now.Add(time.Minute)
+	h.run()
+	h.state("gpu", v1alpha1.PowerOff)
+	h.override("gpu", "") // back to automatic
+
+	// Node lifecycle controller: heartbeats stopped.
+	n := h.n("gpu")
+	n.Status.Conditions = []corev1.NodeCondition{{Type: corev1.NodeReady, Status: corev1.ConditionUnknown,
+		LastHeartbeatTime: metav1.NewTime(h.now.Add(-2 * time.Minute)), LastTransitionTime: metav1.NewTime(h.now)}}
+	if err := h.c.Status().Update(context.Background(), n); err != nil {
+		t.Fatal(err)
+	}
+	h.now = h.now.Add(time.Hour)
+	h.run()
+	h.state("gpu", v1alpha1.PowerOff) // still off: nothing posted
+
+	// Powered on by hand: kubelet posts NotReady (no CNI yet).
+	n = h.n("gpu")
+	n.Status.Conditions = []corev1.NodeCondition{{Type: corev1.NodeReady, Status: corev1.ConditionFalse,
+		LastHeartbeatTime: metav1.NewTime(h.now), LastTransitionTime: metav1.NewTime(h.now)}}
+	if err := h.c.Status().Update(context.Background(), n); err != nil {
+		t.Fatal(err)
+	}
+	h.run()
+	h.state("gpu", v1alpha1.PowerBooting)
+	if m := h.m("gpu"); m.Status.Target != v1alpha1.TargetOn {
+		t.Fatalf("target %s, want On", m.Status.Target)
+	}
+	if PowerTaintEffect(h.n("gpu")) != corev1.TaintEffectNoSchedule {
+		t.Fatalf("taint %q, want NoSchedule so the CNI can start", PowerTaintEffect(h.n("gpu")))
+	}
+	h.setReady("gpu", true)
+	h.run()
+	h.state("gpu", v1alpha1.PowerOn)
+	if n := h.n("gpu"); PowerTaintEffect(n) != "" || n.Spec.Unschedulable {
+		t.Fatal("node should be untainted and uncordoned")
+	}
+}
+
+func TestShutdownHeartbeatIsNotAPowerOn(t *testing.T) {
+	h := newHarness(t, policy(false), node("cp", true, "4", "8Gi", map[string]string{"node-role.kubernetes.io/control-plane": ""}),
+		node("gpu", true, "20", "120Gi", nil))
+	if err := h.c.Create(context.Background(), h.machine("gpu")); err != nil {
+		t.Fatal(err)
+	}
+	h.run()
+	h.override("gpu", "off")
+	h.run()
+	h.run()
+	h.setReady("gpu", false)
+	h.now = h.now.Add(time.Minute)
+	h.run()
+	h.state("gpu", v1alpha1.PowerOff)
+	// The kubelet posts one last NotReady while the OS finishes shutting down.
+	n := h.n("gpu")
+	n.Status.Conditions = []corev1.NodeCondition{{Type: corev1.NodeReady, Status: corev1.ConditionFalse,
+		LastHeartbeatTime: metav1.NewTime(h.now.Add(20 * time.Second)), LastTransitionTime: metav1.NewTime(h.now)}}
+	if err := h.c.Status().Update(context.Background(), n); err != nil {
+		t.Fatal(err)
+	}
+	h.now = h.now.Add(time.Hour)
+	h.run()
+	h.state("gpu", v1alpha1.PowerOff)
+}

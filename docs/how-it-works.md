@@ -116,7 +116,10 @@ Booting ─(every powerOn driver timed out)→ Failed ─(backoff)→ Off → Bo
 - **On:** the taint is removed. The node is uncordoned only if the scaler
   cordoned it, so a manual cordon survives a power cycle.
 
-If a machine powers up by itself, the scaler adopts it as On. After a scaler
+If a machine powers up by itself (power button, BIOS, a plug switched by
+hand), the scaler adopts it: as soon as its kubelet posts status again it is
+treated as booting (taint back to `NoSchedule` so the CNI can start), then
+On once Ready, with its idle timer starting over. After a scaler
 restart, each machine resumes from its recorded state.
 
 ## Safety rules

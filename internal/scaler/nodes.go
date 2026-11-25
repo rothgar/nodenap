@@ -30,6 +30,22 @@ func NodeReady(n *corev1.Node) bool {
 	return false
 }
 
+// KubeletPostedAfter reports whether the kubelet has posted node status since
+// t. While a machine is off, the node lifecycle controller sets Ready to
+// Unknown; a kubelet that's back posts True or False with a fresh heartbeat,
+// even while the node can't become Ready (no CNI yet).
+func KubeletPostedAfter(n *corev1.Node, t time.Time) bool {
+	if n == nil {
+		return false
+	}
+	for _, c := range n.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status != corev1.ConditionUnknown && c.LastHeartbeatTime.After(t)
+		}
+	}
+	return false
+}
+
 // NotReadySince returns when the node last stopped being Ready.
 func NotReadySince(n *corev1.Node) time.Time {
 	for _, c := range n.Status.Conditions {

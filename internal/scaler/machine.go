@@ -25,6 +25,8 @@ import (
 const (
 	maxFailureBackoff       = time.Hour
 	unexpectedNotReadyGrace = 5 * time.Minute
+	// offSettle: kubelet status posted this soon after Off isn't taken as a manual power-on.
+	offSettle = 3 * time.Minute
 	strandedPodGrace        = time.Minute
 	defaultPowerCutDelay    = 30 * time.Second
 )
@@ -148,6 +150,17 @@ func (x *machineStep) step(ctx context.Context) error {
 				x.transition(v1alpha1.PowerOn, "machine came up on its own")
 				st.Target, st.TargetReason = v1alpha1.TargetOn, "machine came up on its own"
 				return x.untaint(ctx)
+			}
+			// Powered on by hand: the kubelet is back but the off taint
+			// (NoExecute) keeps the CNI DaemonSet away, so the node can't
+			// become Ready. Treat it as booting: NoSchedule lets DaemonSets
+			// start, and it goes On once Ready. Heartbeats in the first
+			// minutes after Off may be a kubelet still shutting down.
+			if st.LastTransitionTime != nil && KubeletPostedAfter(x.node, st.LastTransitionTime.Add(offSettle)) {
+				st.Target, st.TargetReason = v1alpha1.TargetOn, "machine came up on its own"
+				st.PowerOnAttempt = 0
+				x.transition(v1alpha1.PowerBooting, "kubelet is posting status again; machine came up on its own")
+				return x.bootTaint(ctx)
 			}
 			if err := setTaint(ctx, x.s.Client, x.node, corev1.TaintEffectNoExecute); err != nil {
 				return err
