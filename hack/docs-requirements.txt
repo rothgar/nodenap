@@ -1,0 +1,2 @@
+# Builds the GitHub Pages site (mkdocs.yml). Used by .github/workflows/pages.yaml.
+mkdocs-material==9.8.2

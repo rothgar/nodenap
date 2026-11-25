@@ -1,0 +1,51 @@
+name: pages
+
+# Builds the docs site (mkdocs.yml) and publishes it to GitHub Pages:
+# https://rothgar.github.io/nodenap/
+
+on:
+  push:
+    branches: [main]
+    paths: [docs/**, mkdocs.yml, hack/mkdocs_hooks.py, hack/docs-requirements.txt, .github/workflows/pages.yaml]
+  pull_request:
+    paths: [docs/**, mkdocs.yml, hack/mkdocs_hooks.py, hack/docs-requirements.txt, .github/workflows/pages.yaml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r hack/docs-requirements.txt
+      - name: Build
+        run: mkdocs build --strict
+        env:
+          NO_MKDOCS_2_WARNING: "1"
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

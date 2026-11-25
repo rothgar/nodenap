@@ -143,9 +143,10 @@ rather than try to prove identity:
    under a key that changes daily, keep the hash no longer than that day,
    and never store addresses. This caps how many fresh IDs one source can
    create.
-4. **Count only established installs,** for example ones with seven or more
-   consecutive consistent daily reports, so fake installs created in bulk
-   take weeks to matter.
+4. **Count only established installs,** for example ones with three or more
+   consecutive consistent daily reports (the ready-made collector's
+   default, `ESTABLISHED_REPORTS`), so fake installs created in bulk take
+   days to matter and stay capped by the per-source limit.
 5. **Publish robust statistics:** totals over established installs, medians,
    per-install caps, with outliers dropped. Label the figure "self-reported by
    opted-in installs".

@@ -117,7 +117,7 @@ async function handleStats(request, env, ctx) {
   const hit = await cache.match(key);
   if (hit) return hit;
 
-  const established = num(env.ESTABLISHED_REPORTS, 7);
+  const established = num(env.ESTABLISHED_REPORTS, 3);
   const today = utcDay(Date.now());
   const week = utcDay(Date.now() - 7 * 86_400_000);
   const row = await env.DB.prepare(

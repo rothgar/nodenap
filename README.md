@@ -38,7 +38,7 @@ costs right now and what nodenap has saved
 
 ### Public savings total
 
-**<https://nodenap-collector.123dev.workers.dev>** shows the total energy
+**<https://rothgar.github.io/nodenap/savings/>** shows the total energy
 saved by every nodenap install that has opted in. To add yours, turn on the
 anonymous daily report (one small JSON payload, logged before it's sent; no
 names, addresses or prices; [details](docs/savings-and-telemetry.md#anonymous-telemetry-opt-in)):
@@ -96,6 +96,8 @@ go run github.com/rothgar/nodenap/cmd/powerplan@latest -f my-config.yaml
 ```
 
 ## Documentation
+
+Read it on the web at **<https://rothgar.github.io/nodenap/>**, or here:
 
 | | |
 |---|---|

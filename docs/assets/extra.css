@@ -1,0 +1,20 @@
+/* Landing page and savings tiles. Colors come from Material's theme tokens. */
+.nn-hero { padding: 1.5rem 0 0.5rem; }
+.nn-hero h1 { color: var(--md-default-fg-color); font-size: clamp(2.6rem, 7vw, 3.8rem); font-weight: 700; letter-spacing: -0.02em; margin: 0 0 0.6rem; }
+.nn-hero h1 span { color: var(--md-primary-fg-color); }
+.nn-hero .nn-lede { font-size: 1.15rem; color: var(--md-default-fg-color--light); max-width: 42rem; margin: 0 0 1.2rem; }
+
+.nn-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; margin: 1.2rem 0 0.4rem; }
+.nn-tile { border: 1px solid var(--md-default-fg-color--lightest); border-radius: 0.5rem; padding: 0.8rem 1rem; }
+.nn-tile .nn-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--md-default-fg-color--light); }
+.nn-tile .nn-value { font: 500 1.4rem/1.3 var(--md-code-font-family); font-variant-numeric: tabular-nums; }
+.nn-tile.nn-big { grid-column: 1 / -1; padding: 1.2rem 1.4rem; }
+.nn-tile.nn-big .nn-value { font-size: clamp(2.4rem, 9vw, 4.2rem); line-height: 1.1; color: var(--md-primary-fg-color); }
+.nn-status { font-size: 0.72rem; color: var(--md-default-fg-color--light); min-height: 1.4em; }
+
+@media screen and (max-width: 44.9375em) {
+  .nn-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Four feature cards read better as a 2×2 grid than 3 + 1. */
+.md-typeset .grid.nn-features { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }

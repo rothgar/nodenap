@@ -1,0 +1,74 @@
+# GitHub Pages site: https://rothgar.github.io/nodenap/
+# Build locally: pip install -r hack/docs-requirements.txt && mkdocs serve
+site_name: nodenap
+site_description: Power your homelab's Kubernetes machines on and off automatically.
+site_url: https://rothgar.github.io/nodenap/
+repo_url: https://github.com/rothgar/nodenap
+repo_name: rothgar/nodenap
+edit_uri: edit/main/docs/
+copyright: Apache License 2.0
+
+docs_dir: docs
+exclude_docs: |
+  *.go
+  examples/
+
+hooks:
+  - hack/mkdocs_hooks.py
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: green
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: green
+      toggle: {icon: material/weather-sunny, name: Light mode}
+  font:
+    text: IBM Plex Sans
+    code: IBM Plex Mono
+  icon:
+    logo: material/power-sleep
+  favicon: images/favicon.svg
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - content.action.edit
+    - search.highlight
+
+extra_css: [assets/extra.css]
+extra_javascript: [assets/stats.js]
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Savings: savings.md
+  - Docs:
+      - Getting started: getting-started.md
+      - How it works: how-it-works.md
+      - Configuration reference: configuration.md
+      - Power drivers: power-drivers.md
+      - Power sensors: power-sensors.md
+      - Finding your power costs: power-costs.md
+      - Solar and batteries: solar-and-batteries.md
+      - Savings and telemetry: savings-and-telemetry.md
+      - Examples: https://github.com/rothgar/nodenap/tree/main/docs/examples

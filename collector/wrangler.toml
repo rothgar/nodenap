@@ -18,7 +18,7 @@ crons = ["17 0 * * *"] # daily: delete yesterday's hashed sources
 
 [vars]
 REPO = "rothgar/nodenap"                 # versions must be tags of this repo
-ESTABLISHED_REPORTS = "7"                # reports before an install counts
+ESTABLISHED_REPORTS = "3"                # reports before an install counts
 NEW_INSTALLS_PER_SOURCE_PER_DAY = "3"
 MAX_WATTS_PER_MACHINE = "1000"
 FIRST_REPORT_MAX_DAYS = "90"
