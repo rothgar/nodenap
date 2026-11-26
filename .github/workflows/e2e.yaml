@@ -1,0 +1,44 @@
+name: e2e
+
+# End-to-end tests on k3s (k3d): nodenap powers real k3s agent containers off
+# and on through a fake smart plug. See hack/e2e-k3s.sh.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: [docs/**, collector/**, mkdocs.yml, "**.md"]
+  pull_request:
+    paths-ignore: [docs/**, collector/**, mkdocs.yml, "**.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  k3s:
+    name: k3s (${{ matrix.scenario }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [power, upgrade]
+    env:
+      K3D_VERSION: v5.8.3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Install k3d
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -fsSL -o "$HOME/bin/k3d" \
+            "https://github.com/k3d-io/k3d/releases/download/${K3D_VERSION}/k3d-linux-amd64"
+          chmod +x "$HOME/bin/k3d"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/k3d" version
+      - name: Test
+        run: hack/e2e-k3s.sh ${{ matrix.scenario }}
