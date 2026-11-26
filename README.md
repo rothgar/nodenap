@@ -118,6 +118,8 @@ make test       # unit and loop tests, no cluster needed
 make generate   # deepcopy
 make manifests  # CRDs and RBAC (also copied into the Helm chart)
 make build      # bin/nodenap
+hack/e2e-k3s.sh power     # end-to-end on k3s (k3d): power a node off and on
+hack/e2e-k3s.sh upgrade   # end-to-end on k3s: wake an off node that's behind
 ```
 
 Layout: `api/v1alpha1` (CRDs), `internal/scaler` (the loop and per-machine
