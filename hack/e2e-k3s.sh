@@ -188,8 +188,10 @@ scenario_upgrade() {
   kubectl get nodes -o custom-columns='NAME:.metadata.name,OS:.status.nodeInfo.osImage,KUBELET:.status.nodeInfo.kubeletVersion'
   setup
 
+  # nodenap wakes it for the upgrade as soon as it's Off, so only check that
+  # it was powered off; the Off state itself may last a single loop.
   step "idle machine is powered off"
-  expect_powered_off 1
+  eventually 360 grep -q "off $NODE" "$PLUG_LOG" || fail "the plug was never switched off"
 
   step "while off, it's behind the other nodes, so it's woken to catch up"
   kubectl wait "machine/$NODE" --for=jsonpath='{.status.target}'=On --timeout=2m
