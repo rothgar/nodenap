@@ -26,7 +26,11 @@ PLUG_LOG=$WORK/plug.log
 step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
 field() { kubectl get "machine/$NODE" -o jsonpath="$1"; }
-off_taint() { kubectl get node "$NODE" -o jsonpath='{.spec.taints}' | grep -o 'nodenap.rothgar.github.io/off[^}]*' || true; }
+# The effect of nodenap's off taint on $NODE, or "" without one.
+off_taint() { kubectl get node "$NODE" -o jsonpath='{.spec.taints[?(@.key=="nodenap.rothgar.github.io/off")].effect}'; }
+# eventually SECONDS CMD...: retry CMD once a second until it succeeds.
+eventually() { local t=$1; shift; for _ in $(seq "$t"); do "$@" && return 0; sleep 1; done; "$@"; }
+taint_is() { [ "$(off_taint)" = "$1" ]; }
 container_running() { docker inspect -f '{{.State.Running}}' "$NODE"; }
 
 diagnose() {
@@ -125,7 +129,7 @@ expect_powered_off() {
   kubectl wait "machine/$NODE" --for=jsonpath='{.status.powerState}'=Off --timeout=6m
   [ "$(grep -c "off $NODE" "$PLUG_LOG")" -ge "$1" ] || fail "the plug wasn't switched off (log: $(cat "$PLUG_LOG"))"
   [ "$(container_running)" = false ] || fail "$NODE is still running"
-  off_taint | grep -q NoExecute || fail "the off node lacks the NoExecute taint: $(off_taint)"
+  eventually 30 taint_is NoExecute || fail "the off node's taint is '$(off_taint)', want NoExecute"
   kubectl get machines
 }
 
@@ -133,7 +137,7 @@ expect_powered_on() {
   kubectl wait "machine/$NODE" --for=jsonpath='{.status.powerState}'=On --timeout=6m
   grep -q "on $NODE" "$PLUG_LOG" || fail "the plug was never switched on"
   [ "$(container_running)" = true ] || fail "$NODE isn't running"
-  [ -z "$(off_taint)" ] || fail "taint still on the woken node: $(off_taint)"
+  eventually 30 taint_is "" || fail "taint still on the woken node: $(off_taint)"
   kubectl get machines
 }
 
